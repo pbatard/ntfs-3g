@@ -50,7 +50,9 @@
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
+#ifdef HAVE_GRP_H
 #include <grp.h>
+#endif
 
 #include "compat.h"
 #include "param.h"

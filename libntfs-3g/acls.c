@@ -53,7 +53,9 @@
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
+#ifdef HAVE_GRP_H
 #include <grp.h>
+#endif
 
 #include "types.h"
 #include "layout.h"
