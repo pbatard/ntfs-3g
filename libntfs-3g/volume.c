@@ -1860,6 +1860,7 @@ void ntfs_mount_error(const char *volume, const char *mntpoint, int err)
 
 int ntfs_set_locale(void)
 {
+#ifdef HAVE_SETLOCALE
 	const char *locale;
 
 	locale = setlocale(LC_ALL, "");
@@ -1869,6 +1870,7 @@ int ntfs_set_locale(void)
 			       "'%s'.\n", locale);
 		return 1;
 	}
+#endif /* HAVE_SETLOCALE */
 	return 0;
 }
 
