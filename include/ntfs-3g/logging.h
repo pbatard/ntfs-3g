@@ -32,6 +32,7 @@
 #endif
 
 #include "types.h"
+#include "compat.h"
 
 /* Function prototype for the logging handlers */
 typedef int (ntfs_log_handler)(const char *function, const char *file, int line,

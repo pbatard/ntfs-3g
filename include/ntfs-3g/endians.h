@@ -27,6 +27,8 @@
 #include "config.h"
 #endif
 
+#include "compat.h"
+
 /*
  * Notes:
  *	We define the conversion functions including typecasts since the

@@ -30,6 +30,9 @@
 #include <stddef.h>
 #endif
 
+#include "types.h"
+#include "compat.h"
+
 /*
  * Our mailing list. Use this define to prevent typos in email address.
  */
