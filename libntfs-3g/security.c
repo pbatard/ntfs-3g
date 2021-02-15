@@ -47,7 +47,9 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#ifdef HAVE_PWD_H
 #include <pwd.h>
+#endif
 #include <grp.h>
 
 #include "compat.h"
