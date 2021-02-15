@@ -4589,7 +4589,9 @@ struct MAPPING *ntfs_do_user_mapping(struct MAPLIST *firstitem)
 	struct MAPPING *firstmapping;
 	struct MAPPING *lastmapping;
 	struct MAPPING *mapping;
+#ifdef HAVE_PWD_H
 	struct passwd *pwd;
+#endif
 	SID *sid;
 	int uid;
 
@@ -4600,6 +4602,7 @@ struct MAPPING *ntfs_do_user_mapping(struct MAPLIST *firstitem)
 			uid = atoi(item->uidstr);
 		else {
 			uid = 0;
+#ifdef HAVE_PWD_H
 			if (item->uidstr[0]) {
 				pwd = getpwnam(item->uidstr);
 				if (pwd)
@@ -4608,6 +4611,7 @@ struct MAPPING *ntfs_do_user_mapping(struct MAPLIST *firstitem)
 					ntfs_log_early_error("Invalid user \"%s\"\n",
 						item->uidstr);
 			}
+#endif
 		}
 			/*
 			 * Records with no uid and no gid are inserted
@@ -4667,7 +4671,9 @@ struct MAPPING *ntfs_do_group_mapping(struct MAPLIST *firstitem)
 	struct MAPPING *firstmapping;
 	struct MAPPING *lastmapping;
 	struct MAPPING *mapping;
+#ifdef HAVE_GRP_H
 	struct group *grp;
+#endif
 	BOOL secondstep;
 	BOOL ok;
 	int step;
@@ -4686,6 +4692,7 @@ struct MAPPING *ntfs_do_group_mapping(struct MAPLIST *firstitem)
 				gid = atoi(item->gidstr);
 			else {
 				gid = 0;
+#ifdef HAVE_GRP_H
 				if (item->gidstr[0]) {
 					grp = getgrnam(item->gidstr);
 					if (grp)
@@ -4694,6 +4701,7 @@ struct MAPPING *ntfs_do_group_mapping(struct MAPLIST *firstitem)
 						ntfs_log_early_error("Invalid group \"%s\"\n",
 							item->gidstr);
 				}
+#endif
 			}
 			/*
 			 * Records with no uid and no gid are inserted in the
