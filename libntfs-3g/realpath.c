@@ -18,6 +18,7 @@
 #include <ctype.h>
 #endif
 
+#include "compat.h"
 #include "param.h"
 #include "realpath.h"
 
