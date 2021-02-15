@@ -5,6 +5,7 @@
  * Copyright (c) 2002-2009 Szabolcs Szakacsits
  * Copyright (c) 2008-2015 Jean-Pierre Andre
  * Copyright (c) 2008      Bernhard Kaindl
+ * Copyright (c) 2021      Pete Batard
  *
  * This program/include file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published
@@ -908,6 +909,7 @@ int ntfs_ucstombs(const ntfschar *ins, const int ins_len, char **outs,
 {
 	char *mbs;
 	int mbs_len;
+#ifndef FORCE_UTF8
 #ifdef MB_CUR_MAX
 	wchar_t wc;
 	int i, o;
@@ -916,6 +918,7 @@ int ntfs_ucstombs(const ntfschar *ins, const int ins_len, char **outs,
 	mbstate_t mbstate;
 #endif
 #endif /* MB_CUR_MAX */
+#endif /* FORCE_UTF8 */
 
 	if (!ins || !outs) {
 		errno = EINVAL;
@@ -929,6 +932,8 @@ int ntfs_ucstombs(const ntfschar *ins, const int ins_len, char **outs,
 	}
 	if (use_utf8)
 		return ntfs_utf16_to_utf8(ins, ins_len, outs, outs_len);
+
+#ifndef FORCE_UTF8
 #ifdef MB_CUR_MAX
 	if (!mbs) {
 		mbs_len = (ins_len + 1) * MB_CUR_MAX;
@@ -998,6 +1003,8 @@ err_out:
 #else /* MB_CUR_MAX */
 	errno = EILSEQ;
 #endif /* MB_CUR_MAX */
+#endif /* FORCE_UTF8 */
+
 	return -1;
 }
 
@@ -1026,6 +1033,7 @@ err_out:
  */
 int ntfs_mbstoucs(const char *ins, ntfschar **outs)
 {
+#ifndef FORCE_UTF8
 #ifdef MB_CUR_MAX
 	ntfschar *ucs;
 	const char *s;
@@ -1035,6 +1043,7 @@ int ntfs_mbstoucs(const char *ins, ntfschar **outs)
 	mbstate_t mbstate;
 #endif
 #endif /* MB_CUR_MAX */
+#endif /* FORCE_UTF8 */
 
 	if (!ins || !outs) {
 		errno = EINVAL;
@@ -1044,6 +1053,7 @@ int ntfs_mbstoucs(const char *ins, ntfschar **outs)
 	if (use_utf8)
 		return ntfs_utf8_to_utf16(ins, outs);
 
+#ifndef FORCE_UTF8
 #ifdef MB_CUR_MAX
 	/* Determine the size of the multi-byte string in bytes. */
 	ins_size = strlen(ins);
@@ -1137,6 +1147,8 @@ err_out:
 #else /* MB_CUR_MAX */
 	errno = EILSEQ;
 #endif /* MB_CUR_MAX */
+#endif /* FORCE_UTF8 */
+
 	return -1;
 }
 
@@ -1644,6 +1656,7 @@ BOOL ntfs_collapsible_chars(ntfs_volume *vol,
 int ntfs_set_char_encoding(const char *locale)
 {
 	use_utf8 = 1;
+#ifndef FORCE_UTF8
 	if (locale && !strstr(locale,"utf8") && !strstr(locale,"UTF8")
 	    && !strstr(locale,"utf-8") && !strstr(locale,"UTF-8")) {
 #ifdef HAVE_SETLOCALE
@@ -1653,6 +1666,7 @@ int ntfs_set_char_encoding(const char *locale)
 #endif /* HAVE_SETLOCALE */
 			ntfs_log_error("Invalid locale, encoding to UTF-8\n");
 	}
+#endif /* FORCE_UTF8 */
 	return 0; /* always successful */
 }
 

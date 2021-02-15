@@ -151,6 +151,13 @@ AC_ARG_ENABLE(
 	[enable_ntfsprogs="yes"]
 )
 
+AC_ARG_ENABLE(
+	[locales],
+	[AS_HELP_STRING([--disable-locales],[disable locales support and force UTF-8 always])],
+	,
+	[enable_locales="yes"]
+)
+
 AC_ARG_ENABLE(crypto,
 	AS_HELP_STRING(--enable-crypto,enable crypto related code and utilities
 		       (default=no)), ,
@@ -586,6 +593,7 @@ test "${enable_mtab}" = "no" && AC_DEFINE([IGNORE_MTAB], [1], [Don't update /etc
 test "${enable_posix_acls}" != "no" && AC_DEFINE([POSIXACLS], [1], [POSIX ACL support])
 test "${enable_xattr_mappings}" != "no" && AC_DEFINE([XATTR_MAPPINGS], [1], [system extended attributes mappings])
 test "${disable_plugins}" != "no" && AC_DEFINE([DISABLE_PLUGINS], [1], [Define to 1 for disabling reparse plugins])
+test "${enable_locales}" = "no" && AC_DEFINE([FORCE_UTF8], [1], [Define to 1 for force UTF-8 always])
 
 test "${enable_really_static}" = "yes" && enable_library="no"
 test "${enable_library}" = "no" && enable_ldconfig="no"
