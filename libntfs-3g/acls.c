@@ -47,7 +47,9 @@
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
 #endif
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <pwd.h>
 #include <grp.h>
 
