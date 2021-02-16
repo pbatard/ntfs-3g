@@ -5,6 +5,7 @@
  * Copyright (c) 2002-2004 Anton Altaparmakov
  * Copyright (c) 2008-2009 Szabolcs Szakacsits
  * Copyright (c) 2019      Jean-Pierre Andre
+ * Copyright (c) 2021      Pete Batard
  *
  * This program/include file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published
@@ -56,6 +57,13 @@
 #define NTFS_NOXATTR_ERRNO ENODATA
 #endif
 
+#ifdef _MSC_VER
+
+#define __inline__ __inline
+#define __attribute__(X)
+
+#endif /* _MSC_VER */
+
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
@@ -79,8 +87,6 @@ extern char *strsep(char **stringp, const char *delim);
 
 #define atoll			_atoi64
 #define fdatasync		commit
-#define __inline__		inline
-#define __attribute__(X)	/*nothing*/
 
 #else /* !defined WINDOWS */
 
@@ -91,4 +97,3 @@ extern char *strsep(char **stringp, const char *delim);
 #endif /* defined WINDOWS */
 
 #endif /* defined _NTFS_COMPAT_H */
-
