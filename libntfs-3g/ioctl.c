@@ -412,7 +412,7 @@ int ntfs_ioctl(ntfs_inode *ni, unsigned long cmd,
 			range->len = trimmed;
 		}
 		break;
-#else
+#elif !defined(UEFI_DRIVER)
 #warning Trimming not supported : FITRIM or BLKDISCARD not defined
 #endif
 	default :
