@@ -2524,6 +2524,7 @@ typedef struct {
  */
 typedef struct {
 	/* Irrelevant as feature unused. */
+	u8 unused[0];		/* For MSVC */
 } __attribute__((__packed__)) PROPERTY_SET;
 
 /**
@@ -2539,6 +2540,7 @@ typedef struct {
  */
 typedef struct {
 	/* Can be anything the creator chooses. */
+	u8 unused[0];		/* For MSVC */
 } __attribute__((__packed__)) LOGGED_UTILITY_STREAM;
 
 /*
