@@ -74,7 +74,6 @@ struct CACHED_PERMISSIONS_LEGACY {
 	struct CACHED_PERMISSIONS_LEGACY *previous;
 	void *variable;
 	size_t varsize;
-	union ALIGNMENT payload[0];
 		/* above fields must match "struct CACHED_GENERIC" */
 	u64 mft_no;
 	struct CACHED_PERMISSIONS perm;
@@ -89,7 +88,6 @@ struct CACHED_SECURID {
 	struct CACHED_SECURID *previous;
 	void *variable;
 	size_t varsize;
-	union ALIGNMENT payload[0];
 		/* above fields must match "struct CACHED_GENERIC" */
 	uid_t uid;
 	gid_t gid;

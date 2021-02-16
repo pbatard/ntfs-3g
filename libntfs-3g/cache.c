@@ -298,7 +298,9 @@ struct CACHED_GENERIC *ntfs_enter_cache(struct CACHE_HEADER *cache,
 			if (cache->most_recent_entry)
 				cache->most_recent_entry->previous = current;
 			cache->most_recent_entry = current;
-			memcpy(current->payload, item->payload, cache->fixed_size);
+			memcpy(&((struct CACHED_INODE*)current)->inum,
+				   &((struct CACHED_INODE*)item)->inum,
+				   cache->fixed_size);
 			if (item->varsize) {
 				if (current->variable) {
 					memcpy(current->variable,
