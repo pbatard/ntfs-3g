@@ -1233,6 +1233,18 @@ static BOOL groupmember(struct SECURITY_CONTEXT *scx, uid_t uid, gid_t gid)
 	return (ismember);
 }
 
+#elif defined(UEFI_DRIVER)
+
+/*
+ * Dummy check whether current thread owner is member of file group
+ * For the UEFI driver, this is of course always true.
+ */
+
+static BOOL groupmember(struct SECURITY_CONTEXT* scx, uid_t uid, gid_t gid)
+{
+	return TRUE;
+}
+
 #else /* defined(__sun) && defined (__SVR4) */
 
 /*
