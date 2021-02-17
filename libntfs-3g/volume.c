@@ -1437,6 +1437,7 @@ ntfs_volume *ntfs_mount(const char *name __attribute__((unused)),
 	 * defined as there are no device operations available in libntfs in
 	 * this case.
 	 */
+	ntfs_log_error("No I/O ops are defined for this platform!\n");
 	errno = EOPNOTSUPP;
 	return NULL;
 #endif
