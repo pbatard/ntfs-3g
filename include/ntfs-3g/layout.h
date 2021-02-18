@@ -32,6 +32,13 @@
 #define magicNTFS	const_cpu_to_le64(0x202020205346544e)	/* "NTFS    " */
 #define NTFS_SB_MAGIC	0x5346544e				/* 'NTFS' */
 
+/**
+ * All the structures below should be packed
+ */
+#if defined(_MSC_VER)
+__pragma(pack(push, 1))
+#endif
+
 /*
  * Location of bootsector on partition:
  *	The standard NTFS_BOOT_SECTOR is on sector 0 of the partition.
@@ -2730,5 +2737,9 @@ typedef struct {
 		ntfschar target[0];
 	} __attribute__((__packed__));
 } __attribute__((__packed__)) INTX_FILE;
+
+#if defined(_MSC_VER)
+__pragma(pack(pop))
+#endif
 
 #endif /* defined _NTFS_LAYOUT_H */
