@@ -1142,7 +1142,7 @@ typedef struct {
 } __attribute__((__packed__)) FILE_NAME_ATTR;
 
 /**
- * struct GUID - GUID structures store globally unique identifiers (GUID).
+ * struct NTFS_GUID - This structure stores globally unique identifiers (GUID).
  *
  * A GUID is a 128-bit value consisting of one group of eight hexadecimal
  * digits, followed by three groups of four hexadecimal digits each, followed
@@ -1160,7 +1160,7 @@ typedef struct {
 	u8 data4[8];	/* The first two bytes are the third group of four
 			   hexadecimal digits. The remaining six bytes are the
 			   final 12 hexadecimal digits. */
-} __attribute__((__packed__)) GUID;
+} __attribute__((__packed__)) NTFS_GUID;
 
 /**
  * struct OBJ_ID_INDEX_DATA - FILE_Extend/$ObjId contains an index named $O.
@@ -1180,9 +1180,9 @@ typedef struct {
 					   in the index entry key. */
 	union {
 		struct {
-			GUID birth_volume_id;
-			GUID birth_object_id;
-			GUID domain_id;
+			NTFS_GUID birth_volume_id;
+			NTFS_GUID birth_object_id;
+			NTFS_GUID domain_id;
 		} __attribute__((__packed__));
 		u8 extended_info[48];
 	} __attribute__((__packed__));
@@ -1194,10 +1194,10 @@ typedef struct {
  * NOTE: Always resident.
  */
 typedef struct {
-	GUID object_id;				/* Unique id assigned to the
+	NTFS_GUID object_id;				/* Unique id assigned to the
 						   file.*/
 	/* The following fields are optional. The attribute value size is 16
-	   bytes, i.e. sizeof(GUID), if these are not present at all. Note,
+	   bytes, i.e. sizeof(NTFS_GUID), if these are not present at all. Note,
 	   the entries can be present but one or more (or all) can be zero
 	   meaning that that particular value(s) is(are) not defined. Note,
 	   when the fields are missing here, it is well possible that they are
@@ -1205,11 +1205,11 @@ typedef struct {
 	   above object_id. */
 	union {
 		struct {
-			GUID birth_volume_id;	/* Unique id of volume on which
+			NTFS_GUID birth_volume_id;	/* Unique id of volume on which
 						   the file was first created.*/
-			GUID birth_object_id;	/* Unique id of file when it was
+			NTFS_GUID birth_object_id;	/* Unique id of file when it was
 						   first created. */
-			GUID domain_id;		/* Reserved, zero. */
+			NTFS_GUID domain_id;		/* Reserved, zero. */
 		} __attribute__((__packed__));
 		u8 extended_info[48];
 	} __attribute__((__packed__));
@@ -1689,8 +1689,8 @@ typedef struct {
 
 /*  4*/	ACCESS_MASK mask;	/* Access mask associated with the ACE. */
 /*  8*/	OBJECT_ACE_FLAGS object_flags;	/* Flags describing the object ACE. */
-/* 12*/	GUID object_type;
-/* 28*/	GUID inherited_object_type;
+/* 12*/	NTFS_GUID object_type;
+/* 28*/	NTFS_GUID inherited_object_type;
 /* 44*/	SID sid;		/* The SID associated with the ACE. */
 } __attribute__((__packed__)) ACCESS_ALLOWED_OBJECT_ACE,
 			       ACCESS_DENIED_OBJECT_ACE,
@@ -2355,7 +2355,7 @@ typedef struct {
 		FILE_NAME_ATTR file_name;/* $I30 index in directories. */
 		SII_INDEX_KEY sii;	/* $SII index in $Secure. */
 		SDH_INDEX_KEY sdh;	/* $SDH index in $Secure. */
-		GUID object_id;		/* $O index in FILE_Extend/$ObjId: The
+		NTFS_GUID object_id;		/* $O index in FILE_Extend/$ObjId: The
 					   object_id of the mft record found in
 					   the data part of the index. */
 		REPARSE_INDEX_KEY reparse;	/* $R index in

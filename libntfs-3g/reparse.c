@@ -489,7 +489,7 @@ static BOOL valid_reparse_data(ntfs_inode *ni,
 		&& (((size_t)le16_to_cpu(reparse_attr->reparse_data_length)
 			 + sizeof(REPARSE_POINT)
 			 + ((reparse_attr->reparse_tag &
-			     IO_REPARSE_TAG_IS_MICROSOFT) ? 0 : sizeof(GUID))) == size);
+			     IO_REPARSE_TAG_IS_MICROSOFT) ? 0 : sizeof(NTFS_GUID))) == size);
 	if (ok) {
 		switch (reparse_attr->reparse_tag) {
 		case IO_REPARSE_TAG_MOUNT_POINT :

@@ -208,13 +208,13 @@ enum {
 
 #endif
 
-extern BOOL ntfs_guid_is_zero(const GUID *guid);
-extern char *ntfs_guid_to_mbs(const GUID *guid, char *guid_str);
+extern BOOL ntfs_guid_is_zero(const NTFS_GUID *guid);
+extern char *ntfs_guid_to_mbs(const NTFS_GUID *guid, char *guid_str);
 
 extern int ntfs_sid_to_mbs_size(const SID *sid);
 extern char *ntfs_sid_to_mbs(const SID *sid, char *sid_str,
 		size_t sid_str_size);
-extern void ntfs_generate_guid(GUID *guid);
+extern void ntfs_generate_guid(NTFS_GUID *guid);
 extern int ntfs_sd_add_everyone(ntfs_inode *ni);
 
 extern le32 ntfs_security_hash(const SECURITY_DESCRIPTOR_RELATIVE *sd, 

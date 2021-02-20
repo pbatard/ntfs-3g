@@ -1013,7 +1013,7 @@ static void ntfs_dump_attr_object_id(ATTR_RECORD *attr,ntfs_volume *vol)
 		printf("\tObject ID:\t\t %s\n", printable_GUID);
 
 		/* Dump Birth Volume ID. */
-		if ((value_length > sizeof(GUID)) && !ntfs_guid_is_zero(
+		if ((value_length > sizeof(NTFS_GUID)) && !ntfs_guid_is_zero(
 				&obj_id_attr->birth_volume_id)) {
 			ntfs_guid_to_mbs(&obj_id_attr->birth_volume_id,
 					printable_GUID);
@@ -1022,7 +1022,7 @@ static void ntfs_dump_attr_object_id(ATTR_RECORD *attr,ntfs_volume *vol)
 			printf("\tBirth Volume ID:\t missing\n");
 
 		/* Dumping Birth Object ID */
-		if ((value_length > sizeof(GUID)) && !ntfs_guid_is_zero(
+		if ((value_length > sizeof(NTFS_GUID)) && !ntfs_guid_is_zero(
 				&obj_id_attr->birth_object_id)) {
 			ntfs_guid_to_mbs(&obj_id_attr->birth_object_id,
 					printable_GUID);
@@ -1031,7 +1031,7 @@ static void ntfs_dump_attr_object_id(ATTR_RECORD *attr,ntfs_volume *vol)
 			printf("\tBirth Object ID:\t missing\n");
 
 		/* Dumping Domain_id - reserved for now */
-		if ((value_length > sizeof(GUID)) && !ntfs_guid_is_zero(
+		if ((value_length > sizeof(NTFS_GUID)) && !ntfs_guid_is_zero(
 				&obj_id_attr->domain_id)) {
 			ntfs_guid_to_mbs(&obj_id_attr->domain_id,
 					printable_GUID);
