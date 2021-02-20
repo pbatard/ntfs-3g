@@ -111,15 +111,15 @@ typedef struct {
 	union {
 		/* alignment may be needed to evaluate collations */
 		u32 alignment;
-		GUID guid;
+		NTFS_GUID guid;
 	} object_id;
 } OBJECT_ID_INDEX_KEY;
 
 typedef struct {
 	le64 file_id;
-	GUID birth_volume_id;
-	GUID birth_object_id;
-	GUID domain_id;
+	NTFS_GUID birth_volume_id;
+	NTFS_GUID birth_object_id;
+	NTFS_GUID domain_id;
 } OBJECT_ID_INDEX_DATA; // known as OBJ_ID_INDEX_DATA
 
 struct OBJECT_ID_INDEX {		/* index entry in $Extend/$ObjId */
@@ -162,15 +162,15 @@ static int set_object_id_index(ntfs_inode *ni, ntfs_index_context *xo,
 	indx.header.flags = const_cpu_to_le16(0);
 	indx.header.reserved = const_cpu_to_le16(0);
 
-	memcpy(&indx.key.object_id,object_id,sizeof(GUID));
+	memcpy(&indx.key.object_id,object_id,sizeof(NTFS_GUID));
 
 	indx.data.file_id = file_id;
 	memcpy(&indx.data.birth_volume_id,
-			&object_id->birth_volume_id,sizeof(GUID));
+			&object_id->birth_volume_id,sizeof(NTFS_GUID));
 	memcpy(&indx.data.birth_object_id,
-			&object_id->birth_object_id,sizeof(GUID));
+			&object_id->birth_object_id,sizeof(NTFS_GUID));
 	memcpy(&indx.data.domain_id,
-			&object_id->domain_id,sizeof(GUID));
+			&object_id->domain_id,sizeof(NTFS_GUID));
 	ntfs_index_ctx_reinit(xo);
 	return (ntfs_ie_add(xo,(INDEX_ENTRY*)&indx));
 }
@@ -232,7 +232,7 @@ static int merge_index_data(ntfs_inode *ni,
 	res = -1;
 	xo = open_object_id_index(ni->vol);
 	if (xo) {
-		memcpy(&key.object_id,objectid_attr,sizeof(GUID));
+		memcpy(&key.object_id,objectid_attr,sizeof(NTFS_GUID));
 		if (!ntfs_index_lookup(&key,
 				sizeof(OBJECT_ID_INDEX_KEY), xo)) {
 			entry = (struct OBJECT_ID_INDEX*)xo->entry;
@@ -242,13 +242,13 @@ static int merge_index_data(ntfs_inode *ni,
 					== ni->mft_no)) {
 				memcpy(&full_objectid->birth_volume_id,
 						&entry->data.birth_volume_id,
-						sizeof(GUID));
+						sizeof(NTFS_GUID));
 				memcpy(&full_objectid->birth_object_id,
 						&entry->data.birth_object_id,
-						sizeof(GUID));
+						sizeof(NTFS_GUID));
 				memcpy(&full_objectid->domain_id,
 						&entry->data.domain_id,
-						sizeof(GUID));
+						sizeof(NTFS_GUID));
 				res = 0;
 			}
 		}
@@ -279,22 +279,22 @@ static int remove_object_id_index(ntfs_attr *na, ntfs_index_context *xo,
 	ret = na->data_size;
 	if (ret) {
 			/* read the existing object id attribute */
-		size = ntfs_attr_pread(na, 0, sizeof(GUID), old_attr);
-		if (size >= (s64)sizeof(GUID)) {
+		size = ntfs_attr_pread(na, 0, sizeof(NTFS_GUID), old_attr);
+		if (size >= (s64)sizeof(NTFS_GUID)) {
 			memcpy(&key.object_id,
-				&old_attr->object_id,sizeof(GUID));
+				&old_attr->object_id,sizeof(NTFS_GUID));
 			if (!ntfs_index_lookup(&key,
 					sizeof(OBJECT_ID_INDEX_KEY), xo)) {
 				entry = (struct OBJECT_ID_INDEX*)xo->entry;
 				memcpy(&old_attr->birth_volume_id,
 					&entry->data.birth_volume_id,
-					sizeof(GUID));
+					sizeof(NTFS_GUID));
 				memcpy(&old_attr->birth_object_id,
 					&entry->data.birth_object_id,
-					sizeof(GUID));
+					sizeof(NTFS_GUID));
 				memcpy(&old_attr->domain_id,
 					&entry->data.domain_id,
-					sizeof(GUID));
+					sizeof(NTFS_GUID));
 				if (ntfs_index_rm(xo))
 					ret = -1;
 			}
@@ -340,13 +340,13 @@ static int update_object_id(ntfs_inode *ni, ntfs_index_context *xo,
 			res = -1;
 		else {
 			/* resize attribute */
-			res = ntfs_attr_truncate(na, (s64)sizeof(GUID));
+			res = ntfs_attr_truncate(na, (s64)sizeof(NTFS_GUID));
 				/* write the object_id in attribute */
 			if (!res && value) {
 				written = (int)ntfs_attr_pwrite(na,
-					(s64)0, (s64)sizeof(GUID),
+					(s64)0, (s64)sizeof(NTFS_GUID),
 					&value->object_id);
-				if (written != (s64)sizeof(GUID)) {
+				if (written != (s64)sizeof(NTFS_GUID)) {
 					ntfs_log_error("Failed to update "
 							"object id\n");
 					errno = EIO;
@@ -475,10 +475,10 @@ int ntfs_get_ntfs_object_id(ntfs_inode *ni, char *value, size_t size)
 			AT_OBJECT_ID,(ntfschar*)NULL, 0, &attr_size);
 		if (objectid_attr) {
 				/* restrict to only GUID present in attr */
-			if (attr_size == sizeof(GUID)) {
+			if (attr_size == sizeof(NTFS_GUID)) {
 				memcpy(&full_objectid.object_id,
-						objectid_attr,sizeof(GUID));
-				full_size = sizeof(GUID);
+						objectid_attr,sizeof(NTFS_GUID));
+				full_size = sizeof(NTFS_GUID);
 					/* get data from index, if any */
 				if (!merge_index_data(ni, objectid_attr,
 						&full_objectid)) {
@@ -524,11 +524,11 @@ int ntfs_set_ntfs_object_id(ntfs_inode *ni,
 	int res;
 
 	res = 0;
-	if (ni && value && (size >= sizeof(GUID))) {
+	if (ni && value && (size >= sizeof(NTFS_GUID))) {
 		xo = open_object_id_index(ni->vol);
 		if (xo) {
 			/* make sure the GUID was not used elsewhere */
-			memcpy(&key.object_id, value, sizeof(GUID));
+			memcpy(&key.object_id, value, sizeof(NTFS_GUID));
 			if ((ntfs_index_lookup(&key,
 					sizeof(OBJECT_ID_INDEX_KEY), xo))
 			    || (MREF_LE(((struct OBJECT_ID_INDEX*)xo->entry)
@@ -596,7 +596,7 @@ int ntfs_remove_ntfs_object_id(ntfs_inode *ni)
 					/* now remove attribute */
 					res = ntfs_attr_rm(na);
 					if (res
-					    && (oldsize > (int)sizeof(GUID))) {
+					    && (oldsize > (int)sizeof(NTFS_GUID))) {
 					/*
 					 * If we could not remove the
 					 * attribute, try to restore the
