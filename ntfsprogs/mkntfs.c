@@ -2104,7 +2104,7 @@ static int add_attr_file_name(MFT_RECORD *m, const leMFT_REF parent_dir,
  *
  * Return 0 on success or -errno on error.
  */
-static int add_attr_object_id(MFT_RECORD *m, const GUID *object_id)
+static int add_attr_object_id(MFT_RECORD *m, const NTFS_GUID *object_id)
 {
 	OBJECT_ID_ATTR oi;
 	int err;
@@ -3381,7 +3381,7 @@ static int create_hardlink(INDEX_BLOCK *idx, const leMFT_REF ref_parent,
  *
  * Return 0 on success or -errno on error.
  */
-static int index_obj_id_insert(MFT_RECORD *m, const GUID *guid,
+static int index_obj_id_insert(MFT_RECORD *m, const NTFS_GUID *guid,
 		const leMFT_REF ref)
 {
 	INDEX_ENTRY *idx_entry_new;
@@ -3395,7 +3395,7 @@ static int index_obj_id_insert(MFT_RECORD *m, const GUID *guid,
 	 * consists of the index entry header, followed by the index key, i.e.
 	 * the GUID, followed by the index data, i.e. OBJ_ID_INDEX_DATA.
 	 */
-	data_ofs = (sizeof(INDEX_ENTRY_HEADER) + sizeof(GUID) + 7) & ~7;
+	data_ofs = (sizeof(INDEX_ENTRY_HEADER) + sizeof(NTFS_GUID) + 7) & ~7;
 	idx_size = (data_ofs + sizeof(OBJ_ID_INDEX_DATA) + 7) & ~7;
 	idx_entry_new = ntfs_calloc(idx_size);
 	if (!idx_entry_new)
@@ -3404,7 +3404,7 @@ static int index_obj_id_insert(MFT_RECORD *m, const GUID *guid,
 	idx_entry_new->data_length =
 			const_cpu_to_le16(sizeof(OBJ_ID_INDEX_DATA));
 	idx_entry_new->length = cpu_to_le16(idx_size);
-	idx_entry_new->key_length = const_cpu_to_le16(sizeof(GUID));
+	idx_entry_new->key_length = const_cpu_to_le16(sizeof(NTFS_GUID));
 	idx_entry_new->key.object_id = *guid;
 	oi = (OBJ_ID_INDEX_DATA*)((u8*)idx_entry_new + data_ofs);
 	oi->mft_reference = ref;
@@ -4300,7 +4300,7 @@ static BOOL mkntfs_sync_index_record(INDEX_ALLOCATION* idx, MFT_RECORD* m,
  * create_file_volume -
  */
 static BOOL create_file_volume(MFT_RECORD *m, leMFT_REF root_ref,
-		VOLUME_FLAGS fl, const GUID *volume_guid)
+		VOLUME_FLAGS fl, const NTFS_GUID *volume_guid)
 {
 	int i, err;
 	u8 *sd;
@@ -4407,7 +4407,7 @@ static BOOL mkntfs_create_root_structures(void)
 	int nr_sysfiles;
 	int buf_sds_first_size;
 	char *buf_sds;
-	GUID vol_guid;
+	NTFS_GUID vol_guid;
 
 	ntfs_log_quiet("Creating NTFS volume structures.\n");
 	nr_sysfiles = 27;

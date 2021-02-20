@@ -150,9 +150,9 @@ extern const SID *nullsid;
  * The zero GUID.
  */
 
-static const GUID __zero_guid = { const_cpu_to_le32(0), const_cpu_to_le16(0),
+static const NTFS_GUID __zero_guid = { const_cpu_to_le32(0), const_cpu_to_le16(0),
 		const_cpu_to_le16(0), { 0, 0, 0, 0, 0, 0, 0, 0 } };
-static const GUID *const zero_guid = &__zero_guid;
+static const NTFS_GUID *const zero_guid = &__zero_guid;
 
 /**
  * ntfs_guid_is_zero - check if a GUID is zero
@@ -161,7 +161,7 @@ static const GUID *const zero_guid = &__zero_guid;
  * Return TRUE if @guid is a valid pointer to a GUID and it is the zero GUID
  * and FALSE otherwise.
  */
-BOOL ntfs_guid_is_zero(const GUID *guid)
+BOOL ntfs_guid_is_zero(const NTFS_GUID *guid)
 {
 	return (memcmp(guid, zero_guid, sizeof(*zero_guid)));
 }
@@ -182,7 +182,7 @@ BOOL ntfs_guid_is_zero(const GUID *guid)
  * On success return the converted string and on failure return NULL with errno
  * set to the error code.
  */
-char *ntfs_guid_to_mbs(const GUID *guid, char *guid_str)
+char *ntfs_guid_to_mbs(const NTFS_GUID *guid, char *guid_str)
 {
 	char *_guid_str;
 	int res;
@@ -361,18 +361,18 @@ err_out:
 
 /**
  * ntfs_generate_guid - generatates a random current guid.
- * @guid:	[OUT]   pointer to a GUID struct to hold the generated guid.
+ * @guid:	[OUT]   pointer to an NTFS_GUID struct to hold the generated guid.
  *
  * perhaps not a very good random number generator though...
  */
-void ntfs_generate_guid(GUID *guid)
+void ntfs_generate_guid(NTFS_GUID *guid)
 {
 	unsigned int i;
 	u8 *p = (u8 *)guid;
 
 	/* this is called at most once from mkntfs */
 	srandom(time((time_t*)NULL) ^ (getpid() << 16));
-	for (i = 0; i < sizeof(GUID); i++) {
+	for (i = 0; i < sizeof(NTFS_GUID); i++) {
 		p[i] = (u8)(random() & 0xFF);
 		if (i == 7)
 			p[7] = (p[7] & 0x0F) | 0x40;
