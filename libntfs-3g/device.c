@@ -79,6 +79,8 @@
 #include "logging.h"
 #include "misc.h"
 
+#ifndef UEFI_DRIVER
+
 #if defined(linux) && defined(_IO) && !defined(BLKGETSIZE)
 #define BLKGETSIZE	_IO(0x12,96)  /* Get device size in 512-byte blocks. */
 #endif
@@ -94,6 +96,8 @@
 #if defined(linux) && defined(_IO) && !defined(BLKBSZSET)
 #	define BLKBSZSET _IOW(0x12,113,size_t) /* Set device block size in bytes. */
 #endif
+
+#endif /* UEFI_DRIVER */
 
 /**
  * ntfs_device_alloc - allocate an ntfs device structure and pre-initialize it
