@@ -23,6 +23,12 @@
 #ifndef _NTFS_MISC_H_
 #define _NTFS_MISC_H_
 
+#include "compat.h"
+
+#ifdef HAVE_STDDEF_H
+#include <stddef.h>
+#endif
+
 void *ntfs_calloc(size_t size);
 void *ntfs_malloc(size_t size);
 void *ntfs_realloc(void *ptr, size_t size);
