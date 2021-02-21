@@ -43,6 +43,9 @@
 
 #if defined(__MAKEWITH_GNUEFI)
 #include <efi.h>
+#define VA_LIST   va_list
+#define VA_START  va_start
+#define VA_END    va_end
 #else
 #include <Base.h>
 #endif
