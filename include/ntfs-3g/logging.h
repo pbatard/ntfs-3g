@@ -34,9 +34,19 @@
 #include "types.h"
 #include "compat.h"
 
+#ifndef UEFI_DRIVER
+#define ntfs_va_list   va_list
+#define ntfs_va_start  va_start
+#define ntfs_va_end    va_end
+#else /* UEFI_DRIVER */
+#define ntfs_va_list   VA_LIST
+#define ntfs_va_start  VA_START
+#define ntfs_va_end    VA_END
+#endif /* UEFI_DRIVER */
+
 /* Function prototype for the logging handlers */
 typedef int (ntfs_log_handler)(const char *function, const char *file, int line,
-	u32 level, void *data, const char *format, va_list args);
+	u32 level, void *data, const char *format, ntfs_va_list args);
 
 /* Set the logging handler from one of the functions, below. */
 void ntfs_log_set_handler(ntfs_log_handler *handler 
