@@ -1,0 +1,25 @@
+This README file describes the compilation of ntfs-3g as a UEFI driver
+
+Linux (EDK2)
+------------
+
+This assumes that you have gcc (5.0 or later) and the EDK2 installed.
+For this example, we assume that EDK2 is located in /usr/src/edk2.
+
+Open a command prompt at the top of this repository and issue:
+
+export WORKSPACE=$PWD
+export EDK2_PATH=/usr/src/edk2
+export PACKAGES_PATH=$WORKSPACE:$EDK2_PATH
+source $EDK2_PATH/edksetup.sh --reconfig
+build -a X64 -b RELEASE -t GCC5 -p uefi-driver.dsc
+
+You may also use IA32, ARM, AARCH64 or RISCV64 for the -a parameter to build a
+driver for these architectures noting however that you need to have the relevant
+toolchain and GCC prefix set.
+
+For instance, to compile for ARM, ARM64 and RISCV64, you would need to also issue:
+
+export GCC5_ARM_PREFIX=arm-linux-gnueabi-
+export GCC5_AARCH64_PREFIX=aarch64-linux-gnu-
+export GCC5_RISCV64_PREFIX=riscv64-linux-gnu-
