@@ -174,6 +174,9 @@ FSBindingStart(EFI_DRIVER_BINDING_PROTOCOL* This,
 		return Status;
 	}
 
+	Instance->FileIoInterface.Revision = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_REVISION;
+	Instance->FileIoInterface.OpenVolume = FileOpenVolume;
+
 	/* Fill the device path for our instance */
 	DevicePath = DevicePathFromHandle(ControllerHandle);
 	if (DevicePath == NULL) {
@@ -222,7 +225,8 @@ FSBindingStart(EFI_DRIVER_BINDING_PROTOCOL* This,
 		goto error;
 	}
 
-	/* TODO: Go through target file system init */
+	/* Perform target file system init */
+	Status = FSInstall(Instance, ControllerHandle);
 
 error:
 	if (EFI_ERROR(Status)) {
@@ -264,7 +268,8 @@ FSBindingStop(EFI_DRIVER_BINDING_PROTOCOL* This,
 
 	Instance = BASE_CR(FileIoInterface, EFI_FS, FileIoInterface);
 
-	/* TODO: Go through target file system cleanup */
+	/* Perform target file system cleanup */
+	FSUninstall(Instance, ControllerHandle);
 
 	gBS->CloseProtocol(ControllerHandle, &gEfiDiskIo2ProtocolGuid,
 		This->DriverBindingHandle, ControllerHandle);
