@@ -105,6 +105,9 @@ typedef unsigned long  gid_t;
 typedef unsigned long  pid_t;
 typedef unsigned short mode_t;
 typedef uint32_t       clockid_t;
+#ifndef __inline__
+#define __inline__     __inline
+#endif
 #endif /* _MSC_VER */
 
 struct group {
@@ -204,6 +207,57 @@ struct passwd {
 #ifndef CLOCK_REALTIME
 #define CLOCK_REALTIME  0
 #endif
+
+/*
+ * For a UEFI driver, we can hardcode these.
+ */
+#define getuid()        0
+#define getgid()        0
+#define getpid()        1
+#define getgrgid(x)     NULL
+#define getpwuid(x)     NULL
+#define major(x)        0
+#define minor(x)        0
+/* atoi() is only ever used to convert uid/gid */
+#define atoi(x)         0
+
+/*
+ * The following calls are only referenced when creating a
+ * file system, which we'll never do with the UEFI driver.
+ */
+#define random()        0
+#define srandom(x)
+
+/*
+ * Likewise makedev is pointless for us, so we define a simplified version.
+ */
+#define makedev(major, minor) (((major & 0xffff) << 16) | (minor & 0xffff))
+
+/*
+ * Freeze execution with a message on exit condition
+ */
+#define exit(x)         do {ntfs_log_critical("Driver exit requested!\n"); while(1);} while(0)
+
+/*
+ * open/close/read are referenced, but aren't expected to be called.
+ */
+static __inline__ int open(const char* pathname, int flags)
+{
+	errno = ENOSYS;
+	return -1;
+}
+
+static __inline__ int close(int fd)
+{
+	errno = ENOSYS;
+	return -1;
+}
+
+static __inline__ int read(int fildes, void* buf, size_t nbyte)
+{
+	errno = ENOSYS;
+	return -1;
+}
 
 /*
  * Declaration of the standard UEFI AsciiVSPrint() and AsciiPrint() calls per:
