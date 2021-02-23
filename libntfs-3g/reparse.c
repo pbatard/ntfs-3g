@@ -142,7 +142,7 @@ static u64 ntfs_fix_file_name(ntfs_inode *dir_ni, ntfschar *uname,
 	INDEX_ENTRY *entry;
 	FILE_NAME_ATTR *found;
 	struct {
-		FILE_NAME_ATTR attr;
+		FILE_NAME_ATTR_BASE attr;
 		ntfschar file_name[NTFS_MAX_NAME_LEN + 1];
 	} find;
 
@@ -162,9 +162,9 @@ static u64 ntfs_fix_file_name(ntfs_inode *dir_ni, ntfschar *uname,
 			 */
 			if ((cpuchar < vol->upcase_len)
 			    && (le16_to_cpu(vol->upcase[cpuchar]) < cpuchar))
-				find.attr.file_name[i] = vol->upcase[cpuchar];
+				find.file_name[i] = vol->upcase[cpuchar];
 			else
-				find.attr.file_name[i] = uname[i];
+				find.file_name[i] = uname[i];
 		}
 		olderrno = errno;
 		lkup = ntfs_index_lookup((char*)&find, uname_len, icx);
@@ -182,7 +182,7 @@ static u64 ntfs_fix_file_name(ntfs_inode *dir_ni, ntfschar *uname,
 		if (entry) {
 			found = &entry->key.file_name;
 			if (lkup
-			   && ntfs_names_are_equal(find.attr.file_name,
+			   && ntfs_names_are_equal(find.file_name,
 				find.attr.file_name_length,
 				found->file_name, found->file_name_length,
 				IGNORE_CASE,
