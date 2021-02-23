@@ -4,6 +4,7 @@
  * Copyright (c) 2005 Richard Russon
  * Copyright (c) 2005-2008 Szabolcs Szakacsits
  * Copyright (c) 2010      Jean-Pierre Andre
+ * Copyright (c) 2021      Pete Batard
  *
  * This program/include file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published
@@ -52,7 +53,9 @@
 #endif
 
 #ifdef ENABLE_DEBUG
+#ifndef UEFI_DRIVER
 static int tab;
+#endif
 #endif
 
 /* Some gcc 3.x, 4.[01].X crash with internal compiler error. */
@@ -88,7 +91,11 @@ static struct ntfs_logging ntfs_log = {
 	NTFS_LOG_LEVEL_PROGRESS,
 	NTFS_LOG_FLAG_ONLYNAME,
 #ifdef ENABLE_DEBUG
+#ifdef UEFI_DRIVER
+	ntfs_log_handler_uefi
+#else
 	ntfs_log_handler_outerr
+#endif
 #else
 	ntfs_log_handler_null
 #endif
@@ -406,11 +413,94 @@ void ntfs_log_early_error(const char *format, ...)
 	ntfs_log_handler_syslog(NULL, NULL, 0,
 		NTFS_LOG_LEVEL_ERROR, NULL,
 		format, args);
+#elif defined(UEFI_DRIVER)
+	ntfs_log_handler_uefi(NULL, NULL, 0,
+		NTFS_LOG_LEVEL_ERROR, NULL,
+		format, args);
 #else
 	vfprintf(stderr,format,args);
 #endif
 	va_end(args);
 }
+
+/**
+ * ntfs_log_handler_null - Null logging handler (no output)
+ * @function:	Function in which the log line occurred
+ * @file:	File in which the log line occurred
+ * @line:	Line number on which the log line occurred
+ * @level:	Level at which the line is logged
+ * @data:	User specified data, possibly specific to a handler
+ * @format:	printf-style formatting string
+ * @args:	Arguments to be formatted
+ *
+ * This handler produces no output.  It provides a way to temporarily disable
+ * logging, without having to change the levels and flags.
+ *
+ * Returns:  0  Message wasn't logged
+ */
+int ntfs_log_handler_null(const char* function __attribute__((unused)), const char* file __attribute__((unused)),
+	int line __attribute__((unused)), u32 level __attribute__((unused)), void* data __attribute__((unused)),
+	const char* format __attribute__((unused)), va_list args __attribute__((unused)))
+{
+	return 0;
+}
+
+/**
+ * ntfs_log_handler_uefi - UEFI logging handler
+ * @function:	Function in which the log line occurred
+ * @file:	File in which the log line occurred
+ * @line:	Line number on which the log line occurred
+ * @level:	Level at which the line is logged
+ * @data:	User specified data, possibly specific to a handler
+ * @format:	printf-style formatting string
+ * @args:	Arguments to be formatted
+ *
+ * A simple UEFI logging handler.
+ *
+ * Returns:  -1  Error occurred
+ *            0  Message wasn't logged
+ *          num  Number of output characters
+ */
+
+#ifdef UEFI_DRIVER
+
+#define LOG_LINE_LEN 512
+
+int ntfs_log_handler_uefi(const char* function __attribute__((unused)), const char* file __attribute__((unused)),
+	int line __attribute__((unused)), u32 level __attribute__((unused)), void* data __attribute__((unused)),
+	const char* format __attribute__((unused)), va_list args __attribute__((unused)))
+{
+	char logbuf[LOG_LINE_LEN];
+	size_t i, ret;
+	char* ascii_format = strdup(format);
+
+	if (ascii_format == NULL)
+		return -1;
+
+	/* Convert %s sequences to %a */
+	for (i = 1; i < strlen(format); i++)
+		if ((ascii_format[i] == 's') && (ascii_format[i - 1] == '%'))
+			ascii_format[i] = 'a';
+
+	ret = AsciiVSPrint(logbuf, LOG_LINE_LEN, ascii_format, args);
+	free(ascii_format);
+	if (ret > 0) {
+		ret = 0;
+		if (ntfs_log.flags & NTFS_LOG_FLAG_PREFIX)	/* Prefix the output */
+			ret += AsciiPrint("%a", ntfs_log_get_prefix(level));
+		if (ntfs_log.flags & NTFS_LOG_FLAG_FILENAME)	/* Source filename */
+			ret += AsciiPrint("%a ", file);
+		if (ntfs_log.flags & NTFS_LOG_FLAG_LINE)	/* Source line number */
+			ret += AsciiPrint("(%d) ", line);
+		if ((ntfs_log.flags & NTFS_LOG_FLAG_FUNCTION) || /* Source function */
+			(level & NTFS_LOG_LEVEL_TRACE) || (level & NTFS_LOG_LEVEL_ENTER))
+			ret += AsciiPrint("%a(): ", function);
+		ret += AsciiPrint(logbuf);
+	}
+	return (int)ret;
+}
+
+#else /* UEFI_DRIVER */
 
 /**
  * ntfs_log_handler_fprintf - Basic logging handler
@@ -486,28 +576,6 @@ int ntfs_log_handler_fprintf(const char *function, const char *file,
 	fflush(stream);
 	errno = olderr;
 	return ret;
-}
-
-/**
- * ntfs_log_handler_null - Null logging handler (no output)
- * @function:	Function in which the log line occurred
- * @file:	File in which the log line occurred
- * @line:	Line number on which the log line occurred
- * @level:	Level at which the line is logged
- * @data:	User specified data, possibly specific to a handler
- * @format:	printf-style formatting string
- * @args:	Arguments to be formatted
- *
- * This handler produces no output.  It provides a way to temporarily disable
- * logging, without having to change the levels and flags.
- *
- * Returns:  0  Message wasn't logged
- */
-int ntfs_log_handler_null(const char *function __attribute__((unused)), const char *file __attribute__((unused)),
-	int line __attribute__((unused)), u32 level __attribute__((unused)), void *data __attribute__((unused)),
-	const char *format __attribute__((unused)), va_list args __attribute__((unused)))
-{
-	return 0;
 }
 
 /**
@@ -635,3 +703,4 @@ BOOL ntfs_log_parse_option(const char *option)
 	return FALSE;
 }
 
+#endif /* UEFI_DRIVER */
