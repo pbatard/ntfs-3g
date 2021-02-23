@@ -100,6 +100,7 @@ typedef struct _EFI_FS {
 	CHAR16                          *NtfsVolumeLabel;
 	UINT64                           NtfsVolumeSerial;
 	INTN                             MountCount;
+	INT64                            Offset;
 } EFI_FS;
 
 /* The top of our file system instances list */
