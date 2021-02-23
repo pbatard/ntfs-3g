@@ -104,6 +104,15 @@ static EFI_COMPONENT_NAME2_PROTOCOL FSComponentName2 = {
 	.SupportedLanguages = (CHAR8*)"en"
 };
 
+static VOID
+FreeFsInstance(EFI_FS* Instance) {
+	if (Instance == NULL)
+		return;
+	if (Instance->DevicePathString != NULL)
+		FreePool(Instance->DevicePathString);
+	FreePool(Instance);
+}
+
 /*
  * To check if our driver has a chance to apply to the controllers sent during
  * the supported detection phase, try to open the child protocols it is meant
@@ -152,7 +161,84 @@ FSBindingStart(EFI_DRIVER_BINDING_PROTOCOL* This,
 	EFI_HANDLE ControllerHandle,
 	EFI_DEVICE_PATH* RemainingDevicePath)
 {
-	return EFI_UNSUPPORTED;
+	EFI_STATUS Status;
+	EFI_FS* Instance;
+	EFI_DEVICE_PATH* DevicePath;
+	PrintDebug(L"FSBindingStart\n");
+
+	/* Allocate a new instance of a filesystem */
+	Instance = AllocateZeroPool(sizeof(EFI_FS));
+	if (Instance == NULL) {
+		Status = EFI_OUT_OF_RESOURCES;
+		PrintStatusError(Status, L"Could not allocate a new file system instance");
+		return Status;
+	}
+
+	/* Fill the device path for our instance */
+	DevicePath = DevicePathFromHandle(ControllerHandle);
+	if (DevicePath == NULL) {
+		Status = EFI_NO_MAPPING;
+		PrintStatusError(Status, L"Could not get Device Path");
+		goto error;
+	}
+	Instance->DevicePathString = DevicePathToString(DevicePath);
+
+	/* Get access to the Block IO protocol for this controller */
+	Status = gBS->OpenProtocol(ControllerHandle,
+		&gEfiBlockIo2ProtocolGuid, (VOID**)&Instance->BlockIo2,
+		This->DriverBindingHandle, ControllerHandle,
+		EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+	if (EFI_ERROR(Status))
+		Instance->BlockIo2 = NULL;
+
+	Status = gBS->OpenProtocol(ControllerHandle,
+		&gEfiBlockIoProtocolGuid, (VOID**)&Instance->BlockIo,
+		This->DriverBindingHandle, ControllerHandle,
+		/*
+		 * EFI_OPEN_PROTOCOL_BY_DRIVER would return Access Denied here,
+		 * because the disk driver has that protocol already open. So use
+		 * EFI_OPEN_PROTOCOL_GET_PROTOCOL (which doesn't require us to close it).
+		 */
+		EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+	if (EFI_ERROR(Status)) {
+		PrintStatusError(Status, L"Could not access BlockIO protocol");
+		goto error;
+	}
+
+	/* Get exclusive access to the Disk IO protocol */
+	Status = gBS->OpenProtocol(ControllerHandle,
+		&gEfiDiskIo2ProtocolGuid, (VOID**)&Instance->DiskIo2,
+		This->DriverBindingHandle, ControllerHandle,
+		EFI_OPEN_PROTOCOL_BY_DRIVER);
+	if (EFI_ERROR(Status))
+		Instance->DiskIo2 = NULL;
+
+	Status = gBS->OpenProtocol(ControllerHandle,
+		&gEfiDiskIoProtocolGuid, (VOID**)&Instance->DiskIo,
+		This->DriverBindingHandle, ControllerHandle,
+		EFI_OPEN_PROTOCOL_BY_DRIVER);
+	if (EFI_ERROR(Status)) {
+		PrintStatusError(Status, L"Could not access the DiskIo protocol");
+		goto error;
+	}
+
+	/* TODO: Go through target file system init */
+
+error:
+	if (EFI_ERROR(Status)) {
+		/*
+		 * Unless we close the DiskIO protocols, which we do on error,
+		 * no other FS driver would be able to access this partition.
+		 */
+		if (Instance->DiskIo2 != NULL)
+			gBS->CloseProtocol(ControllerHandle, &gEfiDiskIo2ProtocolGuid,
+				This->DriverBindingHandle, ControllerHandle);
+		if (Instance->DiskIo != NULL)
+			gBS->CloseProtocol(ControllerHandle, &gEfiDiskIoProtocolGuid,
+				This->DriverBindingHandle, ControllerHandle);
+		FreeFsInstance(Instance);
+	}
+	return Status;
 }
 
 static EFI_STATUS EFIAPI
@@ -160,7 +246,34 @@ FSBindingStop(EFI_DRIVER_BINDING_PROTOCOL* This,
 	EFI_HANDLE ControllerHandle, UINTN NumberOfChildren,
 	EFI_HANDLE* ChildHandleBuffer)
 {
-	return EFI_UNSUPPORTED;
+	EFI_STATUS Status;
+	EFI_FS* Instance;
+	EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* FileIoInterface;
+
+	PrintDebug(L"FSBindingStop\n");
+
+	/* Get a pointer back to our FS instance through its installed protocol */
+	Status = gBS->OpenProtocol(ControllerHandle,
+		&gEfiSimpleFileSystemProtocolGuid, (VOID**)&FileIoInterface,
+		This->DriverBindingHandle, ControllerHandle,
+		EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+	if (EFI_ERROR(Status)) {
+		PrintStatusError(Status, L"Could not locate our instance");
+		return Status;
+	}
+
+	Instance = BASE_CR(FileIoInterface, EFI_FS, FileIoInterface);
+
+	/* TODO: Go through target file system cleanup */
+
+	gBS->CloseProtocol(ControllerHandle, &gEfiDiskIo2ProtocolGuid,
+		This->DriverBindingHandle, ControllerHandle);
+	gBS->CloseProtocol(ControllerHandle, &gEfiDiskIoProtocolGuid,
+		This->DriverBindingHandle, ControllerHandle);
+
+	FreeFsInstance(Instance);
+
+	return EFI_SUCCESS;
 }
 
 static EFI_DRIVER_BINDING_PROTOCOL FSDriverBinding = {
