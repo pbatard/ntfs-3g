@@ -51,6 +51,7 @@
   ../libntfs-3g/logging.c
   ../libntfs-3g/uefi_compat.c
   ../uefi-driver/uefi_driver.c
+  ../uefi-driver/uefi_logging.c
   ../uefi-driver/uefi_support.c
 
 [Packages]
