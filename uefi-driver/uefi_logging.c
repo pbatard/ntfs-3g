@@ -16,6 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "uefi_bridge.h"
 #include "uefi_support.h"
 #include "uefi_logging.h"
 
@@ -72,7 +73,7 @@ SetLogging(VOID)
 	for (i = 0; i < ARRAYSIZE(PrintTable); i++)
 		*PrintTable[i] = (i < LogLevel)?(Print_t)Print:(Print_t)PrintNone;
 
-	/* TODO: Call into ntfs_log_set_levels() */
+	NtfsSetLogger(LogLevel);
 
 	PrintExtra(L"LogLevel = %d\n", LogLevel);
 }
