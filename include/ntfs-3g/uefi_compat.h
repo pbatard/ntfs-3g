@@ -294,5 +294,11 @@ char* strchr(const char* s, int c);
 char* strrchr(const char* s, int c);
 int   snprintf(char* str, size_t size, const char* format, ...);
 char* strerror(int errnum);
+/* errno -> _errno() / __errno_location() is defined in errno.h */
+#ifdef _MSC_VER
+int* _errno(void);
+#else
+int* __errno_location(void);
+#endif
 
 #endif /* defined _NTFS_COMPAT_UEFI_H */
