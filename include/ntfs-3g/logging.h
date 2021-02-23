@@ -49,6 +49,7 @@ ntfs_log_handler ntfs_log_handler_null    __attribute__((format(printf, 6, 0)));
 ntfs_log_handler ntfs_log_handler_stdout  __attribute__((format(printf, 6, 0)));
 ntfs_log_handler ntfs_log_handler_outerr  __attribute__((format(printf, 6, 0)));
 ntfs_log_handler ntfs_log_handler_stderr  __attribute__((format(printf, 6, 0)));
+ntfs_log_handler ntfs_log_handler_uefi    __attribute__((format(printf, 6, 0)));
 
 /* Enable/disable certain log levels */
 u32 ntfs_log_set_levels(u32 levels);
