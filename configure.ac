@@ -478,6 +478,15 @@ if test "x$extrapath2" != "x"; then
 	)
 fi
 
+# Checks for _Static_assert() and define a noop if not available.
+# Note that we explicitly check for '_Static_assert' and not the C11 'static_assert' version
+# as the former does not require formally enabling C11 extensions or including <assert.h>.
+AC_MSG_CHECKING([whether _Static_assert is supported])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[_Static_assert(1, "Test");]])],
+	[AC_MSG_RESULT([yes])],
+	[AC_DEFINE(_Static_assert(...), [/* */], [Define to noop if _Static_assert is not available])
+	AC_MSG_RESULT([no])])
+
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_MAJOR

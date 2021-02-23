@@ -71,6 +71,8 @@ typedef struct {
 /* sizeof() = 25 (0x19) bytes */
 } __attribute__((__packed__)) BIOS_PARAMETER_BLOCK;
 
+_Static_assert(sizeof(BIOS_PARAMETER_BLOCK) == 25, "Incorrect BIOS_PARAMETER_BLOCK size");
+
 /**
  * struct NTFS_BOOT_SECTOR - NTFS boot sector structure.
  */
@@ -100,6 +102,8 @@ typedef struct {
 					   0xaa55 in little endian. */
 /* sizeof() = 512 (0x200) bytes */
 } __attribute__((__packed__)) NTFS_BOOT_SECTOR;
+
+_Static_assert(sizeof(NTFS_BOOT_SECTOR) == 512, "Incorrect NTFS_BOOT_SECTOR size");
 
 /**
  * enum NTFS_RECORD_TYPES -
@@ -419,6 +423,8 @@ typedef struct {
  */
 } __attribute__((__packed__)) MFT_RECORD;
 
+_Static_assert(sizeof(MFT_RECORD) == 48, "Incorrect MFT_RECORD size");
+
 /**
  * struct MFT_RECORD_OLD - An MFT record layout (NTFS <=3.0)
  *
@@ -490,6 +496,8 @@ typedef struct {
  * When reading we obviously use the data from the ntfs record header.
  */
 } __attribute__((__packed__)) MFT_RECORD_OLD;
+
+_Static_assert(sizeof(MFT_RECORD_OLD) == 42, "Incorrect MFT_RECORD_OLD size");
 
 /**
  * enum ATTR_TYPES - System defined attributes (32-bit).
@@ -631,6 +639,8 @@ typedef struct {
 /* 98*/	sle64 max_size;			/* Maximum size of attribute. */
 /* sizeof() = 0xa0 or 160 bytes */
 } __attribute__((__packed__)) ATTR_DEF;
+
+_Static_assert(sizeof(ATTR_DEF) == 160, "Incorrect ATTR_DEF size");
 
 /**
  * enum ATTR_FLAGS - Attribute flags (16-bit).
@@ -823,6 +833,8 @@ typedef struct {
 	} __attribute__((__packed__));
 } __attribute__((__packed__)) ATTR_RECORD;
 
+_Static_assert(sizeof(ATTR_RECORD) == 72, "Incorrect ATTR_RECORD size");
+
 typedef ATTR_RECORD ATTR_REC;
 
 /**
@@ -992,6 +1004,8 @@ typedef struct {
 /* sizeof() = 72 bytes (NTFS 3.0) */
 } __attribute__((__packed__)) STANDARD_INFORMATION;
 
+_Static_assert(sizeof(STANDARD_INFORMATION) == 72, "Incorrect STANDARD_INFORMATION size");
+
 /**
  * struct ATTR_LIST_ENTRY - Attribute: Attribute list (0x20).
  *
@@ -1052,6 +1066,8 @@ typedef struct {
 				   name. */
 /* sizeof() = 26 + (attribute_name_length * 2) bytes */
 } __attribute__((__packed__)) ATTR_LIST_ENTRY;
+
+_Static_assert(sizeof(ATTR_LIST_ENTRY) == 26, "Incorrect ATTR_LIST_ENTRY size");
 
 /*
  * The maximum allowed length for a file name.
@@ -1144,6 +1160,8 @@ typedef struct {
 /* 42*/	ntfschar file_name[0];			/* File name in Unicode. */
 } __attribute__((__packed__)) FILE_NAME_ATTR;
 
+_Static_assert(sizeof(FILE_NAME_ATTR) == 0x42, "Incorrect FILE_NAME_ATTR size");
+
 /**
  * Same structure as above, but without the zero sized array
  * for compatibility with MSVC compilers.
@@ -1168,6 +1186,8 @@ typedef struct {
 	FILE_NAME_TYPE_FLAGS file_name_type;
 } __attribute__((__packed__)) FILE_NAME_ATTR_BASE;
 
+_Static_assert(sizeof(FILE_NAME_ATTR_BASE) == 0x42, "Incorrect FILE_NAME_ATTR_BASE size");
+
 /**
  * struct NTFS_GUID - GUID structures store globally unique identifiers (GUID).
  *
@@ -1188,6 +1208,8 @@ typedef struct {
 			   hexadecimal digits. The remaining six bytes are the
 			   final 12 hexadecimal digits. */
 } __attribute__((__packed__)) NTFS_GUID;
+
+_Static_assert(sizeof(NTFS_GUID) == 0x10, "Incorrect NTFS_GUID size");
 
 /**
  * struct OBJ_ID_INDEX_DATA - FILE_Extend/$ObjId contains an index named $O.
@@ -1391,6 +1413,8 @@ typedef union {
 	u8 value[6];			/* Value as individual bytes. */
 } __attribute__((__packed__)) SID_IDENTIFIER_AUTHORITY;
 
+_Static_assert(sizeof(SID_IDENTIFIER_AUTHORITY) == 6, "Incorrect SID_IDENTIFIER_AUTHORITY size");
+
 /**
  * struct SID -
  *
@@ -1425,6 +1449,8 @@ typedef struct {
 	SID_IDENTIFIER_AUTHORITY identifier_authority;
 	le32 sub_authority[1];		/* At least one sub_authority. */
 } __attribute__((__packed__)) SID;
+
+_Static_assert(sizeof(SID) == 12, "Incorrect SID size");
 
 /**
  * enum SID_CONSTANTS - Current constants for SIDs.
@@ -1697,6 +1723,8 @@ typedef struct {
 } __attribute__((__packed__)) ACCESS_ALLOWED_ACE, ACCESS_DENIED_ACE,
 			       SYSTEM_AUDIT_ACE, SYSTEM_ALARM_ACE;
 
+_Static_assert(sizeof(ACCESS_ALLOWED_ACE) == 20, "Incorrect ACE size");
+
 /**
  * enum OBJECT_ACE_FLAGS - The object ACE flags (32-bit).
  */
@@ -1724,6 +1752,8 @@ typedef struct {
 			       SYSTEM_AUDIT_OBJECT_ACE,
 			       SYSTEM_ALARM_OBJECT_ACE;
 
+_Static_assert(sizeof(ACCESS_ALLOWED_OBJECT_ACE) == 56, "Incorrect OBJECT_ACE size");
+
 /**
  * struct ACL - An ACL is an access-control list (ACL).
  *
@@ -1741,6 +1771,8 @@ typedef struct {
 	le16 alignment2;
 /* sizeof() = 8 bytes */
 } __attribute__((__packed__)) ACL;
+
+_Static_assert(sizeof(ACL) == 8, "Incorrect ACL size");
 
 /**
  * enum ACL_CONSTANTS - Current constants for ACLs.
@@ -1853,6 +1885,8 @@ typedef struct {
 /* sizeof() = 0x14 bytes */
 } __attribute__((__packed__)) SECURITY_DESCRIPTOR_RELATIVE;
 
+_Static_assert(sizeof(SECURITY_DESCRIPTOR_RELATIVE) == 0x14, "Incorrect SECURITY_DESCRIPTOR_RELATIVE size");
+
 /**
  * struct SECURITY_DESCRIPTOR - Absolute security descriptor.
  *
@@ -1963,6 +1997,8 @@ typedef struct {
 	le32 length;	   /* Size in bytes of this entry in $SDS stream. */
 } __attribute__((__packed__)) SECURITY_DESCRIPTOR_HEADER;
 
+_Static_assert(sizeof(SECURITY_DESCRIPTOR_HEADER) == 20, "Incorrect SECURITY_DESCRIPTOR_HEADER size");
+
 /**
  * struct SDH_INDEX_DATA -
  */
@@ -1974,6 +2010,8 @@ typedef struct {
 	le32 reserved_II;   /* Padding - always unicode "II" or zero. This field
 			      isn't counted in INDEX_ENTRY's data_length. */
 } __attribute__((__packed__)) SDH_INDEX_DATA;
+
+_Static_assert(sizeof(SDH_INDEX_DATA) == 24, "Incorrect SDH_INDEX_DATA size");
 
 /**
  * struct SII_INDEX_DATA -
@@ -2129,6 +2167,8 @@ typedef struct {
 /* sizeof() == 16 */
 } __attribute__((__packed__)) INDEX_HEADER;
 
+_Static_assert(sizeof(INDEX_HEADER) == 16, "Incorrect INDEX_HEADER size");
+
 /**
  * struct INDEX_ROOT - Attribute: Index root (0x90).
  *
@@ -2168,6 +2208,8 @@ typedef struct {
 /* sizeof()= 32 bytes */
 } __attribute__((__packed__)) INDEX_ROOT;
 
+_Static_assert(sizeof(INDEX_ROOT) == 32, "Incorrect INDEX_ROOT size");
+
 /**
  * struct INDEX_BLOCK - Attribute: Index allocation (0xa0).
  *
@@ -2198,6 +2240,8 @@ typedef struct {
  * When reading use the data from the ntfs record header.
  */
 } __attribute__((__packed__)) INDEX_BLOCK;
+
+_Static_assert(sizeof(INDEX_BLOCK) == 40, "Incorrect INDEX_BLOCK size");
 
 typedef INDEX_BLOCK INDEX_ALLOCATION;
 
@@ -2284,6 +2328,8 @@ typedef struct {
 				   the INDEX_ENTRY's data_length. */
 } __attribute__((__packed__)) QUOTA_CONTROL_ENTRY;
 
+_Static_assert(sizeof(QUOTA_CONTROL_ENTRY) == 60, "Incorrect QUOTA_CONTROL_ENTRY size");
+
 /**
  * struct QUOTA_O_INDEX_DATA -
  */
@@ -2340,6 +2386,8 @@ typedef struct {
 /* 14*/	le16 reserved;
 /* sizeof() = 16 bytes */
 } __attribute__((__packed__)) INDEX_ENTRY_HEADER;
+
+_Static_assert(sizeof(INDEX_ENTRY_HEADER) == 16, "Incorrect INDEX_ENTRY_HEADER size");
 
 /**
  * struct INDEX_ENTRY - This is an index entry.
@@ -2407,6 +2455,9 @@ typedef struct {
 			   (char*)ie + le16_to_cpu(ie->length) - sizeof(VCN)
 	*/
 } __attribute__((__packed__)) INDEX_ENTRY;
+
+/* The largest element of the key union is FILE_NAME_ATTR */
+_Static_assert(sizeof(INDEX_ENTRY) == (16 + sizeof(FILE_NAME_ATTR)), "Incorrect INDEX_ENTRY size");
 
 /**
  * struct BITMAP_ATTR - Attribute: Bitmap (0xb0).
@@ -2496,6 +2547,8 @@ typedef struct {
 	u8 reparse_data[0];		/* Meaning depends on reparse_tag. */
 } __attribute__((__packed__)) REPARSE_POINT;
 
+_Static_assert(sizeof(REPARSE_POINT) == 8, "Incorrect REPARSE_POINT size");
+
 /**
  * struct EA_INFORMATION - Attribute: Extended attribute information (0xd0).
  *
@@ -2512,6 +2565,8 @@ typedef struct {
 				   byte size of the unpacked extended
 				   attributes. */
 } __attribute__((__packed__)) EA_INFORMATION;
+
+_Static_assert(sizeof(EA_INFORMATION) == 8, "Incorrect EA_INFORMATION size");
 
 /**
  * enum EA_FLAGS - Extended attribute flags (8-bit).
@@ -2541,6 +2596,8 @@ typedef struct {
 	u8 name_value[0];		/* Name and value of the EA. */
 } __attribute__((__packed__)) EA_ATTR;
 
+_Static_assert(sizeof(EA_ATTR) == 8, "Incorrect EA_ATTR size");
+
 /**
  * Same structure as above, but without the zero sized array
  * for compatibility with MSVC compilers.
@@ -2551,6 +2608,8 @@ typedef struct {
 	u8 name_length;
 	le16 value_length;
 } __attribute__((__packed__)) EA_ATTR_BASE;
+
+_Static_assert(sizeof(EA_ATTR_BASE) == 8, "Incorrect EA_ATTR_BASE size");
 
 /**
  * struct PROPERTY_SET - Attribute: Property set (0xf0).
@@ -2632,6 +2691,8 @@ typedef struct {
 	le32 reserved;		/* Reserved. */
 } __attribute__((__packed__)) EFS_ATTR_HEADER;
 
+_Static_assert(sizeof(EFS_ATTR_HEADER) == 76, "Incorrect EFS_ATTR_HEADER size");
+
 /**
  * struct EFS_DF_ARRAY_HEADER -
  */
@@ -2653,6 +2714,8 @@ typedef struct {
 				   the data decryption/recovery field. */
 /* 16*/	le32 unknown1;		/* always 0?  Might be just padding. */
 } __attribute__((__packed__)) EFS_DF_HEADER;
+
+_Static_assert(sizeof(EFS_DF_HEADER) == 20, "Incorrect EFS_DF_HEADER size");
 
 /**
  * struct EFS_DF_CREDENTIAL_HEADER -
@@ -2696,6 +2759,8 @@ typedef struct {
 	} __attribute__((__packed__));
 } __attribute__((__packed__)) EFS_DF_CREDENTIAL_HEADER;
 
+_Static_assert(sizeof(EFS_DF_CREDENTIAL_HEADER) == 28, "Incorrect EFS_DF_CREDENTIAL_HEADER size");
+
 typedef EFS_DF_CREDENTIAL_HEADER EFS_DF_CRED_HEADER;
 
 /**
@@ -2716,6 +2781,8 @@ typedef struct {
 					   no user name present.  (This is also
 					   known as lpDisplayInformation.) */
 } __attribute__((__packed__)) EFS_DF_CERTIFICATE_THUMBPRINT_HEADER;
+
+_Static_assert(sizeof(EFS_DF_CERTIFICATE_THUMBPRINT_HEADER) == 20, "Incorrect EFS_DF_CERTIFICATE_THUMBPRINT_HEADER size");
 
 typedef EFS_DF_CERTIFICATE_THUMBPRINT_HEADER EFS_DF_CERT_THUMBPRINT_HEADER;
 
