@@ -4591,7 +4591,7 @@ int ntfs_attr_add(ntfs_inode *ni, ATTR_TYPES type,
 				((name_len * sizeof(ntfschar) + 7) & ~7) +
 				((size + 7) & ~7);
 	else
-		attr_rec_size = offsetof(ATTR_RECORD, non_resident_end) +
+		attr_rec_size = offsetof(ATTR_RECORD, compressed_size) +
 				((name_len * sizeof(ntfschar) + 7) & ~7) + 8;
 
 	/*
@@ -5477,7 +5477,7 @@ static int ntfs_resident_attr_resize_i(ntfs_attr *na, const s64 newsize,
 			return -1;
 		}
 		if (ntfs_inode_free_space(na->ni, offsetof(ATTR_RECORD,
-				non_resident_end) + 8)) {
+				compressed_size) + 8)) {
 			ntfs_log_perror("Could not free space in MFT record");
 			return -1;
 		}

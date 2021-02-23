@@ -269,15 +269,15 @@ int ntfs_set_ntfs_ea(ntfs_inode *ni, const char *value, size_t size, int flags)
 			    && !(nextoffs & 3)
 			    && p_ea->name_length
 				/* zero sized value are allowed */
-			    && ((offs + offsetof(EA_ATTR,name)
+			    && ((offs + offsetof(EA_ATTR,name_value)
 				+ p_ea->name_length + 1
 				+ le16_to_cpu(p_ea->value_length))
 				    <= nextoffs)
-			    && ((offs + offsetof(EA_ATTR,name)
+			    && ((offs + offsetof(EA_ATTR,name_value)
 				+ p_ea->name_length + 1
 				+ le16_to_cpu(p_ea->value_length))
 				    >= (nextoffs - 3))
-			    && !p_ea->name[p_ea->name_length];
+			    && !p_ea->name_value[p_ea->name_length];
 			/* name not checked, as chkdsk accepts any chars */
 			if (ok) {
 				if (p_ea->flags & NEED_EA)
@@ -450,13 +450,13 @@ int ntfs_ea_check_wsldev(ntfs_inode *ni, dev_t *rdevp)
 				&& (p_ea->name_length == (sizeof(lxdev) - 1))
 				&& (p_ea->value_length
 					== const_cpu_to_le16(sizeof(device)))
-				&& !memcmp(p_ea->name, lxdev, sizeof(lxdev)));
+				&& !memcmp(p_ea->name_value, lxdev, sizeof(lxdev)));
 			if (!found)
 				offset += next;
 		} while (!found && (next > 0) && (offset < lth));
 		if (found) {
 				/* beware of alignment */
-			memcpy(&device, &p_ea->name[p_ea->name_length + 1],
+			memcpy(&device, &p_ea->name_value[p_ea->name_length + 1],
 					sizeof(device));
 			*rdevp = makedev(le32_to_cpu(device.major),
 					le32_to_cpu(device.minor));
@@ -476,13 +476,13 @@ int ntfs_ea_set_wsl_not_symlink(ntfs_inode *ni, mode_t type, dev_t dev)
 	} device;
 	struct EA_WSL {
 		struct EA_LXMOD {	/* always inserted */
-			EA_ATTR base;
+			EA_ATTR_BASE base;
 			char name[sizeof(lxmod)];
 			char value[sizeof(mode)];
 			char stuff[3 & -(sizeof(lxmod) + sizeof(mode))];
 		} mod;
 		struct EA_LXDEV {	/* char or block devices only */
-			EA_ATTR base;
+			EA_ATTR_BASE base;
 			char name[sizeof(lxdev)];
 			char value[sizeof(device)];
 			char stuff[3 & -(sizeof(lxdev) + sizeof(device))];
