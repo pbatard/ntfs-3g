@@ -23,3 +23,22 @@ For instance, to compile for ARM, ARM64 and RISCV64, you would need to also issu
 export GCC5_ARM_PREFIX=arm-linux-gnueabi-
 export GCC5_AARCH64_PREFIX=aarch64-linux-gnu-
 export GCC5_RISCV64_PREFIX=riscv64-linux-gnu-
+
+Windows (EDK2)
+--------------
+
+This assumes that you have Visual Studio 2019 and the EDK2 installed.
+For this examples, we assume that EDK2 is installed in D:\EDK2.
+
+Open a command prompt at the top of the ntfs-3g source directory and issue:
+
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+set WORKSPACE=%cd%
+set EDK2_PATH=D:\EDK2
+set PACKAGES_PATH=%WORKSPACE%;%EDK2_PATH%
+%EDK2_PATH%\edksetup.bat reconfig
+build -a X64 -b RELEASE -t VS2019 -p uefi-driver.dsc
+
+You may also use IA32, ARM or AARCH64 for the -a parameter to build a driver
+for these architectures noting however that for ARM or ARM64 compilation, you
+must have selected the relevant C++ components during Visual Studio install.
