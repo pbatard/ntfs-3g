@@ -37,6 +37,23 @@ export GCC5_ARM_PREFIX=arm-linux-gnueabi-
 export GCC5_AARCH64_PREFIX=aarch64-linux-gnu-
 export GCC5_RISCV64_PREFIX=riscv64-linux-gnu-
 
+Windows (gnu-efi)
+-----------------
+
+This assumes that you have Visual Studio 2019 installed and a recent version of
+the gnu-efi source from git://git.code.sf.net/p/gnu-efi/code in a 'gnu-efi'
+directory at the top of this project. If you used git to clone this project and
+it came with the gnu-efi submodule, you can just use the standard git submodule
+init commands to initialize it. If not, you need to install gnu-efi manually.
+
+With gnu-efi properly set up, you can simply open the VS2019 solution file and
+build using the IDE.
+
+If you have QEMU installed under C:\Program Files\qemu\ you should also be
+able to test the driver for any of the supported architectures (IA32, X64, ARM
+and ARM64). Of course building and testing for the latter requires that you
+selected the relevant C++ components during Visual Studio installation.
+
 Windows (EDK2)
 --------------
 
