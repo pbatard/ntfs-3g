@@ -68,6 +68,19 @@
 #define COMMIT_INFO                 unknown
 #endif
 
+/* A file instance */
+typedef struct _EFI_NTFS_FILE {
+	EFI_FILE                         EfiFile;
+	BOOLEAN                          IsDir;
+	BOOLEAN                          IsRoot;
+	INT64                            DirPos;
+	INT64                            Offset;
+	CHAR16                          *Path;
+	CHAR16                          *BaseName;
+	INTN                             RefCount;
+	struct _EFI_FS                  *FileSystem;
+} EFI_NTFS_FILE;
+
 /* A file system instance */
 typedef struct _EFI_FS {
 	LIST_ENTRY                      *ForwardLink;
@@ -80,3 +93,28 @@ typedef struct _EFI_FS {
 	EFI_DISK_IO2_TOKEN               DiskIo2Token;
 	CHAR16                          *DevicePathString;
 } EFI_FS;
+
+extern EFI_STATUS FSInstall(EFI_FS* This, EFI_HANDLE ControllerHandle);
+extern VOID FSUninstall(EFI_FS* This, EFI_HANDLE ControllerHandle);
+extern EFI_STATUS EFIAPI FileOpenVolume(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* This,
+	EFI_FILE_HANDLE* Root);
+
+/*
+ * All the public file system operations that are defined in uefi_file.c
+ */
+EFI_STATUS EFIAPI FileOpen(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
+	CHAR16* Name, UINT64 Mode, UINT64 Attributes);
+EFI_STATUS EFIAPI FileOpenEx(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
+	CHAR16* Name, UINT64 Mode, UINT64 Attributes, EFI_FILE_IO_TOKEN* Token);
+EFI_STATUS EFIAPI FileClose(EFI_FILE_HANDLE This);
+EFI_STATUS EFIAPI FileDelete(EFI_FILE_HANDLE This);
+EFI_STATUS EFIAPI FileRead(EFI_FILE_HANDLE This, UINTN* Len, VOID* Data);
+EFI_STATUS EFIAPI FileReadEx(IN EFI_FILE_PROTOCOL* This, IN OUT EFI_FILE_IO_TOKEN* Token);
+EFI_STATUS EFIAPI FileWrite(EFI_FILE_HANDLE This, UINTN* Len, VOID* Data);
+EFI_STATUS EFIAPI FileWriteEx(IN EFI_FILE_PROTOCOL* This, EFI_FILE_IO_TOKEN* Token);
+EFI_STATUS EFIAPI FileSetPosition(EFI_FILE_HANDLE This, UINT64 Position);
+EFI_STATUS EFIAPI FileGetPosition(EFI_FILE_HANDLE This, UINT64* Position);
+EFI_STATUS EFIAPI FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data);
+EFI_STATUS EFIAPI FileSetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN Len, VOID* Data);
+EFI_STATUS EFIAPI FileFlush(EFI_FILE_HANDLE This);
+EFI_STATUS EFIAPI FileFlushEx(EFI_FILE_HANDLE This, EFI_FILE_IO_TOKEN* Token);
