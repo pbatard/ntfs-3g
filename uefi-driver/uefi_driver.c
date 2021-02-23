@@ -104,7 +104,69 @@ static EFI_COMPONENT_NAME2_PROTOCOL FSComponentName2 = {
 	.SupportedLanguages = (CHAR8*)"en"
 };
 
+/*
+ * To check if our driver has a chance to apply to the controllers sent during
+ * the supported detection phase, try to open the child protocols it is meant
+ * to consume (here EFI_DISK_IO) in exclusive access.
+ */
+static EFI_STATUS EFIAPI
+FSBindingSupported(EFI_DRIVER_BINDING_PROTOCOL* This,
+	EFI_HANDLE ControllerHandle,
+	EFI_DEVICE_PATH_PROTOCOL* RemainingDevicePath)
+{
+	EFI_STATUS Status;
+	EFI_DISK_IO_PROTOCOL* DiskIo;
+	EFI_DISK_IO2_PROTOCOL* DiskIo2;
+
+	/* Don't handle this unless we can get exclusive access to DiskIO through it */
+	Status = gBS->OpenProtocol(ControllerHandle,
+		&gEfiDiskIo2ProtocolGuid, (VOID**)&DiskIo2,
+		This->DriverBindingHandle, ControllerHandle,
+		EFI_OPEN_PROTOCOL_BY_DRIVER);
+	if (EFI_ERROR(Status))
+		DiskIo2 = NULL;
+	Status = gBS->OpenProtocol(ControllerHandle,
+		&gEfiDiskIoProtocolGuid, (VOID**)&DiskIo,
+		This->DriverBindingHandle, ControllerHandle,
+		EFI_OPEN_PROTOCOL_BY_DRIVER);
+	if (EFI_ERROR(Status))
+		return Status;
+
+	PrintDebug(L"FSBindingSupported\n");
+
+	/*
+	 * The whole concept of BindingSupported is to hint at what we may
+	 * actually support, but not check if the target is valid or
+	 * initialize anything, so we must close all protocols we opened.
+	 */
+	gBS->CloseProtocol(ControllerHandle, &gEfiDiskIo2ProtocolGuid,
+		This->DriverBindingHandle, ControllerHandle);
+	gBS->CloseProtocol(ControllerHandle, &gEfiDiskIoProtocolGuid,
+		This->DriverBindingHandle, ControllerHandle);
+
+	return EFI_SUCCESS;
+}
+
+static EFI_STATUS EFIAPI
+FSBindingStart(EFI_DRIVER_BINDING_PROTOCOL* This,
+	EFI_HANDLE ControllerHandle,
+	EFI_DEVICE_PATH* RemainingDevicePath)
+{
+	return EFI_UNSUPPORTED;
+}
+
+static EFI_STATUS EFIAPI
+FSBindingStop(EFI_DRIVER_BINDING_PROTOCOL* This,
+	EFI_HANDLE ControllerHandle, UINTN NumberOfChildren,
+	EFI_HANDLE* ChildHandleBuffer)
+{
+	return EFI_UNSUPPORTED;
+}
+
 static EFI_DRIVER_BINDING_PROTOCOL FSDriverBinding = {
+	.Supported = FSBindingSupported,
+	.Start = FSBindingStart,
+	.Stop = FSBindingStop,
 	/* This field is used by the EFI boot service ConnectController() to determine the order
 	 * that driver's Supported() service will be used when a controller needs to be started.
 	 * EFI Driver Binding Protocol instances with higher Version values will be used before
