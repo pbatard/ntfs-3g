@@ -50,6 +50,7 @@
   ../libntfs-3g/xattrs.c
   ../libntfs-3g/logging.c
   ../libntfs-3g/uefi_compat.c
+  ../libntfs-3g/uefi_io.c
   ../uefi-driver/uefi_driver.c
   ../uefi-driver/uefi_bridge.c
   ../uefi-driver/uefi_file.c

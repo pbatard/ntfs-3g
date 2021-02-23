@@ -36,8 +36,12 @@
 
 #ifndef HAVE_WINDOWS_H
 
-/* Not for Windows use standard Unix style low level device operations. */
+/* Not for Windows use standard Unix style or UEFI low level device operations. */
+#ifdef UEFI_DRIVER
+#define ntfs_device_default_io_ops ntfs_device_uefi_io_ops
+#else
 #define ntfs_device_default_io_ops ntfs_device_unix_io_ops
+#endif /* UEFI_DRIVER */
 
 #else /* HAVE_WINDOWS_H */
 

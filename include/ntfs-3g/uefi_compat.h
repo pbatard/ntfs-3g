@@ -75,9 +75,6 @@
 /* Don't update /etc/mtab */
 #define IGNORE_MTAB         1
 
-/* Don't use default IO ops */
-#define NO_NTFS_DEVICE_DEFAULT_IO_OPS 1
-
 /* Enable GNU extensions on systems that have them. */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE         1
