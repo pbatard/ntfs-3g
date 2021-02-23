@@ -1,0 +1,394 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\ntfs-3g\acls.h" />
+    <ClInclude Include="..\include\ntfs-3g\attrib.h" />
+    <ClInclude Include="..\include\ntfs-3g\attrlist.h" />
+    <ClInclude Include="..\include\ntfs-3g\bitmap.h" />
+    <ClInclude Include="..\include\ntfs-3g\bootsect.h" />
+    <ClInclude Include="..\include\ntfs-3g\cache.h" />
+    <ClInclude Include="..\include\ntfs-3g\collate.h" />
+    <ClInclude Include="..\include\ntfs-3g\compat.h" />
+    <ClInclude Include="..\include\ntfs-3g\compress.h" />
+    <ClInclude Include="..\include\ntfs-3g\debug.h" />
+    <ClInclude Include="..\include\ntfs-3g\device.h" />
+    <ClInclude Include="..\include\ntfs-3g\device_io.h" />
+    <ClInclude Include="..\include\ntfs-3g\dir.h" />
+    <ClInclude Include="..\include\ntfs-3g\ea.h" />
+    <ClInclude Include="..\include\ntfs-3g\efs.h" />
+    <ClInclude Include="..\include\ntfs-3g\endians.h" />
+    <ClInclude Include="..\include\ntfs-3g\index.h" />
+    <ClInclude Include="..\include\ntfs-3g\inode.h" />
+    <ClInclude Include="..\include\ntfs-3g\ioctl.h" />
+    <ClInclude Include="..\include\ntfs-3g\layout.h" />
+    <ClInclude Include="..\include\ntfs-3g\lcnalloc.h" />
+    <ClInclude Include="..\include\ntfs-3g\logfile.h" />
+    <ClInclude Include="..\include\ntfs-3g\logging.h" />
+    <ClInclude Include="..\include\ntfs-3g\mft.h" />
+    <ClInclude Include="..\include\ntfs-3g\misc.h" />
+    <ClInclude Include="..\include\ntfs-3g\mst.h" />
+    <ClInclude Include="..\include\ntfs-3g\ntfstime.h" />
+    <ClInclude Include="..\include\ntfs-3g\object_id.h" />
+    <ClInclude Include="..\include\ntfs-3g\param.h" />
+    <ClInclude Include="..\include\ntfs-3g\plugin.h" />
+    <ClInclude Include="..\include\ntfs-3g\reparse.h" />
+    <ClInclude Include="..\include\ntfs-3g\runlist.h" />
+    <ClInclude Include="..\include\ntfs-3g\security.h" />
+    <ClInclude Include="..\include\ntfs-3g\support.h" />
+    <ClInclude Include="..\include\ntfs-3g\types.h" />
+    <ClInclude Include="..\include\ntfs-3g\uefi_compat.h" />
+    <ClInclude Include="..\include\ntfs-3g\unistr.h" />
+    <ClInclude Include="..\include\ntfs-3g\volume.h" />
+    <ClInclude Include="..\include\ntfs-3g\xattrs.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\libntfs-3g\acls.c" />
+    <ClCompile Include="..\libntfs-3g\attrib.c" />
+    <ClCompile Include="..\libntfs-3g\attrlist.c" />
+    <ClCompile Include="..\libntfs-3g\bitmap.c" />
+    <ClCompile Include="..\libntfs-3g\bootsect.c" />
+    <ClCompile Include="..\libntfs-3g\cache.c" />
+    <ClCompile Include="..\libntfs-3g\collate.c" />
+    <ClCompile Include="..\libntfs-3g\compress.c" />
+    <ClCompile Include="..\libntfs-3g\debug.c" />
+    <ClCompile Include="..\libntfs-3g\device.c" />
+    <ClCompile Include="..\libntfs-3g\dir.c" />
+    <ClCompile Include="..\libntfs-3g\ea.c" />
+    <ClCompile Include="..\libntfs-3g\efs.c" />
+    <ClCompile Include="..\libntfs-3g\index.c" />
+    <ClCompile Include="..\libntfs-3g\inode.c" />
+    <ClCompile Include="..\libntfs-3g\ioctl.c" />
+    <ClCompile Include="..\libntfs-3g\lcnalloc.c" />
+    <ClCompile Include="..\libntfs-3g\logfile.c" />
+    <ClCompile Include="..\libntfs-3g\logging.c" />
+    <ClCompile Include="..\libntfs-3g\mft.c" />
+    <ClCompile Include="..\libntfs-3g\misc.c" />
+    <ClCompile Include="..\libntfs-3g\mst.c" />
+    <ClCompile Include="..\libntfs-3g\object_id.c" />
+    <ClCompile Include="..\libntfs-3g\reparse.c" />
+    <ClCompile Include="..\libntfs-3g\runlist.c" />
+    <ClCompile Include="..\libntfs-3g\security.c" />
+    <ClCompile Include="..\libntfs-3g\uefi_compat.c" />
+    <ClCompile Include="..\libntfs-3g\uefi_io.c" />
+    <ClCompile Include="..\libntfs-3g\unistr.c" />
+    <ClCompile Include="..\libntfs-3g\volume.c" />
+    <ClCompile Include="..\libntfs-3g\xattrs.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{4113800A-71E2-4B93-A839-346B62F55ECF}</ProjectGuid>
+    <RootNamespace>libntfs-3g</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WindowsSDKDesktopARMSupport>true</WindowsSDKDesktopARMSupport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WindowsSDKDesktopARM64Support>true</WindowsSDKDesktopARM64Support>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WindowsSDKDesktopARMSupport>true</WindowsSDKDesktopARMSupport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WindowsSDKDesktopARM64Support>true</WindowsSDKDesktopARM64Support>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <OutDir>$(SolutionDir)arm\$(Configuration)\</OutDir>
+    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <OutDir>$(SolutionDir)aa64\$(Configuration)\</OutDir>
+    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)ia32\$(Configuration)\</OutDir>
+    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)x64\$(Configuration)\</OutDir>
+    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <OutDir>$(SolutionDir)arm\$(Configuration)\</OutDir>
+    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <OutDir>$(SolutionDir)aa64\$(Configuration)\</OutDir>
+    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)ia32\$(Configuration)\</OutDir>
+    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)x64\$(Configuration)\</OutDir>
+    <IntDir>$(OutDir)$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>DEBUG_DOUBLE_INODE;UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Oi- %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4047;4146;4244;4267;4309;4996;6297;26451;28251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\include\uefi-driver;$(SolutionDir)\gnu-efi\inc;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <Lib>
+      <SubSystem>EFI Application</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>DEBUG_DOUBLE_INODE;UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Oi- %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4047;4146;4244;4267;4309;4996;6297;26451;28251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\include\uefi-driver;$(SolutionDir)\gnu-efi\inc;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <Lib>
+      <SubSystem>EFI Application</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>DEBUG_DOUBLE_INODE;UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Oi- %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4047;4146;4244;4267;4309;4996;6297;26451;28251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\include\uefi-driver;$(SolutionDir)\gnu-efi\inc;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <Lib>
+      <SubSystem>EFI Application</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>DEBUG_DOUBLE_INODE;UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Oi- %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4047;4146;4244;4267;4309;4996;6297;26451;28251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\include\uefi-driver;$(SolutionDir)\gnu-efi\inc;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <Lib>
+      <SubSystem>EFI Application</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Oi- %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MinSpace</Optimization>
+      <DisableSpecificWarnings>4047;4146;4244;4267;4309;4996;6297;26451;28251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\include\uefi-driver;$(SolutionDir)\gnu-efi\inc;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <Lib>
+      <SubSystem>EFI Application</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Oi- %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MinSpace</Optimization>
+      <DisableSpecificWarnings>4047;4146;4244;4267;4309;4996;6297;26451;28251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\include\uefi-driver;$(SolutionDir)\gnu-efi\inc;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <Lib>
+      <SubSystem>EFI Application</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Oi- %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MinSpace</Optimization>
+      <DisableSpecificWarnings>4047;4146;4244;4267;4309;4996;6297;26451;28251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\include\uefi-driver;$(SolutionDir)\gnu-efi\inc;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <Lib>
+      <SubSystem>EFI Application</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CompileAs>CompileAsC</CompileAs>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Oi- %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MinSpace</Optimization>
+      <DisableSpecificWarnings>4047;4146;4244;4267;4309;4996;6297;26451;28251</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\include\uefi-driver;$(SolutionDir)\gnu-efi\inc;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+    <Lib>
+      <SubSystem>EFI Application</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
