@@ -2,10 +2,9 @@
 INTRODUCTION
 ============
 
-The NTFS-3G driver is an open source, freely available read/write NTFS driver
-for Linux, FreeBSD, macOS, NetBSD, OpenIndiana, QNX and Haiku. It provides safe
-and fast handling of the Windows NT / 2000 / XP / 7 / 8 / 10 / 11 and
-Windows Server 2003 / 2008 / 2012 / 2016 / 2019 / 2022 / 2025 NTFS file systems.
+The NTFS-3G driver is an open source, freely available read/write NTFS driver 
+for Linux, FreeBSD, Mac OS X, NetBSD, OpenSolaris, QNX, Haiku and UEFI.
+It provides safe and fast handling of the Windows NTFS file system. 
 
 The purpose of the project is to develop, quality assurance and support a 
 trustable, featureful and high performance solution for hardware platforms 
@@ -42,10 +41,16 @@ version. See the included file COPYING.
 The fuse-lite library is distributed under the terms of the GNU LGPLv2.
 See the included file COPYING.LIB.
 
+UEFI DRIVER
+===========
+
+For specifics about the UEFI driver, including compilation and usage, please
+refer to README.uefi in this repository.
 
 QUICK INSTALLATION
 ==================
 
+Linux: Make sure you have the basic development tools and the kernel includes 
 Most distributions have an up-to-date NTFS-3G package ready for use, and
 the recommended way is to install it.
 
