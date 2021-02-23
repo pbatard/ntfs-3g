@@ -42,6 +42,44 @@
 
 #endif /* __MAKEWITH_GNUEFI */
 
+static int __errno;
+
+#ifdef _MSC_VER
+int* _errno(void)
+{
+	return &__errno;
+}
+#else
+int* __errno_location(void)
+{
+	return &__errno;
+}
+#endif /* _MSC_VER */
+
+int ffs(int i)
+{
+#ifdef _MSC_VER
+	unsigned long bit = 0;
+	if (_BitScanForward(&bit, i))
+		return bit + 1;
+	else
+		return 0;
+#else
+	/*
+	 * A GCC bug prevents us from using __builtin_ffs() on RISC-V.
+	 * See https://bugzilla.tianocore.org/show_bug.cgi?id=3459
+	 */
+	if (i == 0)
+		return 0;
+	int pos = 0;
+	while (!(i & 1)) {
+		i >>= 1;
+		++pos;
+	}
+	return pos + 1;
+#endif /* _MSC_VER */
+}
+
 /*
  * Memory allocation calls that hook into the standard UEFI
  * allocation ones. Note that, in order to be able to use
