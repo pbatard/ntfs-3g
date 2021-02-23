@@ -802,10 +802,6 @@ typedef struct {
 /* 56*/			sle64 initialized_size;	/* Byte size of initialized
 				portion of the attribute value. Usually equals
 				data_size. */
-/* 64 */		void *non_resident_end[0]; /* Use offsetof(ATTR_RECORD,
-						      non_resident_end) to get
-						      size of a non resident
-						      attribute. */
 /* sizeof(uncompressed attr) = 64*/
 /* 64*/			sle64 compressed_size;	/* Byte size of the attribute
 				value after compression. Only present when
@@ -1142,7 +1138,31 @@ typedef struct {
 } __attribute__((__packed__)) FILE_NAME_ATTR;
 
 /**
- * struct NTFS_GUID - This structure stores globally unique identifiers (GUID).
+ * Same structure as above, but without the zero sized array
+ * for compatibility with MSVC compilers.
+ */
+typedef struct {
+	leMFT_REF parent_directory;
+	sle64 creation_time;
+	sle64 last_data_change_time;
+	sle64 last_mft_change_time;
+	sle64 last_access_time;
+	sle64 allocated_size;
+	sle64 data_size;
+	FILE_ATTR_FLAGS file_attributes;
+	union {
+		struct {
+			le16 packed_ea_size;
+			le16 reserved;
+		} __attribute__((__packed__));
+		le32 reparse_point_tag;
+	} __attribute__((__packed__));
+	u8 file_name_length;
+	FILE_NAME_TYPE_FLAGS file_name_type;
+} __attribute__((__packed__)) FILE_NAME_ATTR_BASE;
+
+/**
+ * struct NTFS_GUID - GUID structures store globally unique identifiers (GUID).
  *
  * A GUID is a 128-bit value consisting of one group of eight hexadecimal
  * digits, followed by three groups of four hexadecimal digits each, followed
@@ -2511,10 +2531,19 @@ typedef struct {
 	u8 name_length;		/* Length of the name of the extended
 				   attribute in bytes. */
 	le16 value_length;	/* Byte size of the EA's value. */
-	u8 name[0];		/* Name of the EA. */
-	u8 value[0];		/* The value of the EA. Immediately
-				   follows the name. */
+	u8 name_value[0];		/* Name and value of the EA. */
 } __attribute__((__packed__)) EA_ATTR;
+
+/**
+ * Same structure as above, but without the zero sized array
+ * for compatibility with MSVC compilers.
+ */
+typedef struct {
+	le32 next_entry_offset;
+	EA_FLAGS flags;
+	u8 name_length;
+	le16 value_length;
+} __attribute__((__packed__)) EA_ATTR_BASE;
 
 /**
  * struct PROPERTY_SET - Attribute: Property set (0xf0).
