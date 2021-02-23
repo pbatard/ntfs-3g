@@ -21,6 +21,12 @@
   DEBUG_*_*_CC_FLAGS             = -DENABLE_DEBUG
   RELEASE_*_*_CC_FLAGS           = -DMDEPKG_NDEBUG
   *_*_*_CC_FLAGS                 = -DDISABLE_NEW_DEPRECATED_INTERFACES
+!ifdef DRIVER_VERSION
+  *_*_*_CC_FLAGS                 = -DDRIVER_VERSION=$(DRIVER_VERSION)
+!endif
+!ifdef COMMIT_INFO
+  *_*_*_CC_FLAGS                 = -DCOMMIT_INFO=$(COMMIT_INFO)
+!endif
 
 !include MdePkg/MdeLibs.dsc.inc
 
