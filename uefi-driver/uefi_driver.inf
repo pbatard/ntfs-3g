@@ -1,0 +1,98 @@
+## @file
+#  Component Description File for NTFS module.
+#
+#  This UEFI driver detects the NTFS file system in the disk.
+#  It also produces the Simple File System protocol for the consumer
+#  to perform file and directory operations on the disk.
+#
+#  Copyright (c) 2021, Pete Batard <pete@akeo.ie>
+#
+#  SPDX-License-Identifier: GPL-2.0-or-later
+#
+##
+
+[Defines]
+  INF_VERSION                = 0x00010005
+  BASE_NAME                  = ntfs
+  FILE_GUID                  = 4EEDF1E2-36B7-4083-8304-F6E3EAFFA980
+  MODULE_TYPE                = UEFI_DRIVER
+  VERSION_STRING             = 1.0
+  ENTRY_POINT                = FSDriverInstall
+
+[Sources]
+  ../libntfs-3g/acls.c
+  ../libntfs-3g/attrib.c
+  ../libntfs-3g/attrlist.c
+  ../libntfs-3g/bitmap.c
+  ../libntfs-3g/bootsect.c
+  ../libntfs-3g/cache.c
+  ../libntfs-3g/collate.c
+  ../libntfs-3g/compress.c
+  ../libntfs-3g/debug.c
+  ../libntfs-3g/device.c
+  ../libntfs-3g/dir.c
+  ../libntfs-3g/ea.c
+  ../libntfs-3g/efs.c
+  ../libntfs-3g/index.c
+  ../libntfs-3g/inode.c
+  ../libntfs-3g/ioctl.c
+  ../libntfs-3g/lcnalloc.c
+  ../libntfs-3g/logfile.c
+  ../libntfs-3g/mft.c
+  ../libntfs-3g/misc.c
+  ../libntfs-3g/mst.c
+  ../libntfs-3g/object_id.c
+  ../libntfs-3g/reparse.c
+  ../libntfs-3g/runlist.c
+  ../libntfs-3g/security.c
+  ../libntfs-3g/unistr.c
+  ../libntfs-3g/volume.c
+  ../libntfs-3g/xattrs.c
+  ../libntfs-3g/logging.c
+  ../libntfs-3g/uefi_compat.c
+  ../uefi-driver/uefi_driver.c
+  ../uefi-driver/uefi_support.c
+
+[Packages]
+  uefi-driver.dec
+  MdePkg/MdePkg.dec
+  ShellPkg/ShellPkg.dec
+
+[LibraryClasses]
+  UefiRuntimeServicesTableLib
+  UefiBootServicesTableLib
+  MemoryAllocationLib
+  BaseMemoryLib
+  BaseLib
+  UefiLib
+  UefiDriverEntryPoint
+  DebugLib
+  PcdLib
+
+[Guids]
+  gEfiFileInfoGuid
+  gEfiFileSystemInfoGuid
+  gEfiFileSystemVolumeLabelInfoIdGuid
+
+[Protocols]
+  gEfiDiskIoProtocolGuid
+  gEfiDiskIo2ProtocolGuid
+  gEfiBlockIoProtocolGuid
+  gEfiBlockIo2ProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiUnicodeCollationProtocolGuid
+  gEfiUnicodeCollation2ProtocolGuid
+  gEfiDevicePathToTextProtocolGuid
+
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultLang
+  gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultPlatformLang
+
+[BuildOptions]
+  *_*_IA32_CC_FLAGS       = -DFORMAT=efi-app-ia32
+  *_*_X64_CC_FLAGS        = -DFORMAT=efi-app-x64
+  *_*_*_CC_FLAGS          = -Os -DUEFI_DRIVER
+  GCC:*_*_*_CC_FLAGS      = -Wno-format -Wno-unused-function -Wno-incompatible-pointer-types -Wno-nonnull-compare -Wno-address-of-packed-member
+  # Workaround for 'undefined reference to __udivdi3/__divdi3'
+  GCC:*_*_IA32_CC_FLAGS   = -static-libgcc -lgcc
+  MSFT:*_*_*_CC_FLAGS     = -DUSE_COMPILER_INTRINSICS_LIB -D_CRT_SECURE_NO_WARNINGS -D_NO_CRT_STDIO_INLINE -D_OFF_T_DEFINED -D_off_t=int64_t -Doff_t=int64_t /wd4047 /wd4146 /wd4201 /wd4244 /wd4245 /wd4267 /wd4309 /wd4389 /wd4706 /wd4996
