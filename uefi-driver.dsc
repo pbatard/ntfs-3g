@@ -58,6 +58,11 @@
   NULL|ArmPkg/Library/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
   NULL|MdePkg/Library/BaseStackCheckLib/BaseStackCheckLib.inf
 
+[LibraryClasses.IA32, LibraryClasses.X64]
+!if $(TOOLCHAIN) == "VS2019"
+  NULL|.vs/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
+!endif
+
 ###################################################################################################
 #
 # Components Section - list of the modules and components that will be processed by compilation

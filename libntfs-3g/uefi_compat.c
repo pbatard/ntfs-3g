@@ -40,6 +40,13 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 
+/* This is required to avoid LNK2043 errors with EDK2/MSVC/IA32 */
+#if defined(_MSC_VER) && defined(_M_IX86)
+#pragma comment(linker, "/INCLUDE:_MultS64x64")
+#pragma comment(linker, "/INCLUDE:_DivU64x64Remainder")
+#pragma comment(linker, "/INCLUDE:_DivS64x64Remainder")
+#endif
+
 #endif /* __MAKEWITH_GNUEFI */
 
 static int __errno;

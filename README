@@ -41,6 +41,10 @@ version. See the included file COPYING.
 The fuse-lite library is distributed under the terms of the GNU LGPLv2.
 See the included file COPYING.LIB.
 
+The CompilersIntrinsicsLib, which may be required to compile the UEFI driver
+using EDK2+MSVC, is distributed under the terms BSD-2-Clause-Patent.
+See the included file .vs/CompilerIntrinsicsLib/License.txt.
+
 UEFI DRIVER
 ===========
 
