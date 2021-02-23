@@ -20,6 +20,7 @@
 
 #include "uefi_driver.h"
 #include "uefi_logging.h"
+#include "uefi_support.h"
 
 #ifdef __MAKEWITH_GNUEFI
 /* Designate the driver entrypoint */
@@ -43,6 +44,65 @@ typedef struct {
 	INTN Unused;
 } EFI_MUTEX_PROTOCOL;
 static EFI_MUTEX_PROTOCOL MutexProtocol = { 0 };
+
+static CHAR16* FullDriverName = L"NTFS Driver " WIDEN(STRINGIFY(DRIVER_VERSION))
+                                L" (ntfs-3g " WIDEN(STRINGIFY(COMMIT_INFO)) L")";
+
+/* Return the driver name */
+static EFI_STATUS EFIAPI
+FSGetDriverName(EFI_COMPONENT_NAME_PROTOCOL* This,
+	CHAR8* Language, CHAR16** DriverName)
+{
+	*DriverName = FullDriverName;
+	return EFI_SUCCESS;
+}
+
+static EFI_STATUS EFIAPI
+FSGetDriverName2(EFI_COMPONENT_NAME2_PROTOCOL* This,
+	CHAR8* Language, CHAR16** DriverName)
+{
+	*DriverName = FullDriverName;
+	return EFI_SUCCESS;
+}
+
+/* Return the controller name (unsupported for a filesystem) */
+static EFI_STATUS EFIAPI
+FSGetControllerName(EFI_COMPONENT_NAME_PROTOCOL* This,
+	EFI_HANDLE ControllerHandle, EFI_HANDLE ChildHandle,
+	CHAR8* Language, CHAR16** ControllerName)
+{
+	return EFI_UNSUPPORTED;
+}
+
+static EFI_STATUS EFIAPI
+FSGetControllerName2(EFI_COMPONENT_NAME2_PROTOCOL* This,
+	EFI_HANDLE ControllerHandle, EFI_HANDLE ChildHandle,
+	CHAR8* Language, CHAR16** ControllerName)
+{
+	return EFI_UNSUPPORTED;
+}
+
+/*
+ * The platform determines whether it will support the older Component
+ * Name Protocol or the current Component Name2 Protocol, or both.
+ * Because of this, it is strongly recommended that you implement both
+ * protocols in your driver.
+ *
+ * NB: From what I could see, the only difference between Name and Name2
+ * is that Name uses ISO-639-2 ("eng") whereas Name2 uses RFC 4646 ("en")
+ * See: http://www.loc.gov/standards/iso639-2/faq.html#6
+ */
+static EFI_COMPONENT_NAME_PROTOCOL FSComponentName = {
+	.GetDriverName = FSGetDriverName,
+	.GetControllerName = FSGetControllerName,
+	.SupportedLanguages = (CHAR8*)"eng"
+};
+
+static EFI_COMPONENT_NAME2_PROTOCOL FSComponentName2 = {
+	.GetDriverName = FSGetDriverName2,
+	.GetControllerName = FSGetControllerName2,
+	.SupportedLanguages = (CHAR8*)"en"
+};
 
 static EFI_DRIVER_BINDING_PROTOCOL FSDriverBinding = {
 	/* This field is used by the EFI boot service ConnectController() to determine the order
@@ -91,6 +151,8 @@ FSDriverUninstall(EFI_HANDLE ImageHandle)
 	/* Now that all controllers are disconnected, we can safely remove our protocols */
 	gBS->UninstallMultipleProtocolInterfaces(ImageHandle,
 		&gEfiDriverBindingProtocolGuid, &FSDriverBinding,
+		&gEfiComponentNameProtocolGuid, &FSComponentName,
+		&gEfiComponentName2ProtocolGuid, &FSComponentName2,
 		NULL);
 
 	/* Uninstall our mutex (we're the only instance that can run this code) */
@@ -159,6 +221,8 @@ FSDriverInstall(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable)
 	/* Install driver */
 	Status = gBS->InstallMultipleProtocolInterfaces(&FSDriverBinding.DriverBindingHandle,
 		&gEfiDriverBindingProtocolGuid, &FSDriverBinding,
+		&gEfiComponentNameProtocolGuid, &FSComponentName,
+		&gEfiComponentName2ProtocolGuid, &FSComponentName2,
 		NULL);
 	if (EFI_ERROR(Status)) {
 		PrintStatusError(Status, L"Could not bind driver");

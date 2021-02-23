@@ -59,3 +59,11 @@
 #endif /* __MAKEWITH_GNUEFI */
 
 #define NTFS_MUTEX_GUID { 0xf4ed18ca, 0xcdfb, 0x40ca, { 0x97, 0xec, 0x32, 0x2a, 0x8b, 0x01, 0x4e, 0x5f } }
+
+/* Version information to be displayed by the driver. */
+#ifndef DRIVER_VERSION
+#define DRIVER_VERSION              DEV
+#endif
+#ifndef COMMIT_INFO
+#define COMMIT_INFO                 unknown
+#endif
