@@ -51,6 +51,7 @@
 #endif
 
 #define HAVE_ERRNO_H        1
+#define HAVE_CLOCK_GETTIME  1
 #define HAVE_INTTYPES_H     1
 #define HAVE_INTTYPES_H     1
 #define HAVE_LIMITS_H       1
@@ -103,6 +104,7 @@ typedef unsigned long  uid_t;
 typedef unsigned long  gid_t;
 typedef unsigned long  pid_t;
 typedef unsigned short mode_t;
+typedef uint32_t       clockid_t;
 #endif /* _MSC_VER */
 
 struct group {
@@ -199,6 +201,10 @@ struct passwd {
 #define S_ISBLK(m)      (((m) & S_IFMT) == S_IFBLK)
 #endif
 
+#ifndef CLOCK_REALTIME
+#define CLOCK_REALTIME  0
+#endif
+
 /*
  * Declaration of the standard UEFI AsciiVSPrint() and AsciiPrint() calls per:
  * https://github.com/tianocore/edk2/blob/master/MdePkg/Include/Library/PrintLib.h
@@ -206,5 +212,7 @@ struct passwd {
 UINTN EFIAPI AsciiVSPrint(CHAR8 *StartOfBuffer, UINTN BufferSize,
                                  CONST CHAR8 *FormatString, VA_LIST Marker);
 UINTN EFIAPI AsciiPrint(const CHAR8 *Format, ...);
+
+int clock_gettime(clockid_t clk_id, struct timespec* now);
 
 #endif /* defined _NTFS_COMPAT_UEFI_H */
