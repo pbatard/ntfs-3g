@@ -50,3 +50,52 @@ NtfsSetLogger(UINTN Level)
 	ntfs_log_clear_levels(UINT32_MAX);
 	ntfs_log_set_levels(levels);
 }
+
+/*
+ * Allocate a new EFI_NTFS_FILE data structure
+ */
+EFI_STATUS
+NtfsAllocateFile(EFI_NTFS_FILE** File, EFI_FS* FileSystem)
+{
+	EFI_NTFS_FILE* NewFile;
+
+	NewFile = AllocateZeroPool(sizeof(*NewFile));
+	if (NewFile == NULL)
+		return EFI_OUT_OF_RESOURCES;
+
+	/* Initialize the attributes */
+	NewFile->FileSystem = FileSystem;
+	NewFile->EfiFile.Revision = EFI_FILE_PROTOCOL_REVISION2;
+	NewFile->EfiFile.Open = FileOpen;
+	NewFile->EfiFile.Close = FileClose;
+	NewFile->EfiFile.Delete = FileDelete;
+	NewFile->EfiFile.Read = FileRead;
+	NewFile->EfiFile.Write = FileWrite;
+	NewFile->EfiFile.GetPosition = FileGetPosition;
+	NewFile->EfiFile.SetPosition = FileSetPosition;
+	NewFile->EfiFile.GetInfo = FileGetInfo;
+	NewFile->EfiFile.SetInfo = FileSetInfo;
+	NewFile->EfiFile.Flush = FileFlush;
+	NewFile->EfiFile.OpenEx = FileOpenEx;
+	NewFile->EfiFile.ReadEx = FileReadEx;
+	NewFile->EfiFile.WriteEx = FileWriteEx;
+	NewFile->EfiFile.FlushEx = FileFlushEx;
+
+	*File = NewFile;
+	return EFI_SUCCESS;
+}
+
+/*
+ * Free an allocated EFI_NTFS_FILE data structure
+ */
+VOID
+NtfsFreeFile(EFI_NTFS_FILE* File)
+{
+	if (File == NULL)
+		return;
+	/* Only destroy a file that has no refs */
+	if (File->RefCount <= 0) {
+		FreePool(File->Path);
+		FreePool(File);
+	}
+}
