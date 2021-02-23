@@ -269,4 +269,18 @@ UINTN EFIAPI AsciiPrint(const CHAR8 *Format, ...);
 
 int clock_gettime(clockid_t clk_id, struct timespec* now);
 
+/*
+ * Eventually, we should prefix all those with ntfs_ and switch the
+ * library to only using the ntfs_ prefixed calls, so that we can
+ * redefine them without conflicts.
+ */
+void* malloc(size_t size);
+void* calloc(size_t nmemb, size_t size);
+void* realloc(void* p, size_t new_size);
+int   memcmp(const void* s1, const void* s2, size_t n);
+void* memcpy(void* dest, const void* src, size_t n);
+void* memset(void* s, int c, size_t n);
+void* memmove(void* dest, const void* src, size_t n);
+void  free(void* a);
+
 #endif /* defined _NTFS_COMPAT_UEFI_H */
