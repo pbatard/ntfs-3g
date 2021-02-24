@@ -195,6 +195,21 @@ FileFlushEx(EFI_FILE_HANDLE This, EFI_FILE_IO_TOKEN* Token)
 /**
  * Open the volume and return a handle to the root directory
  *
+ * Note that, because we are working in an environment that can be
+ * shut down without notice, we want the volume to remain mounted
+ * for as little time as possible so that the user doesn't end up
+ * with the dreaded "unclean NTFS volume" after restart.
+ * In order to accomplish that, we keep a total reference count of
+ * all the files open on volume (in EFI_FS's TotalRefCount), which
+ * gets updated during Open() and Close() operations.
+ * When that number reaches zero, we unmount the NTFS volume.
+ *
+ * Obviously, this constant mounting and unmounting of the volume
+ * does have an effect on performance (and shouldn't really be
+ * necessary if the volume is mounted read-only), but it is the
+ * one way we have to try to preserve file system integrity on a
+ * system that users may just shut down by yanking a power cable.
+ *
  * @v This			EFI simple file system
  * @ret Root		File handle for the root directory
  * @ret Status		EFI status code
@@ -208,7 +223,12 @@ FileOpenVolume(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* This, EFI_FILE_HANDLE* Root)
 
 	PrintInfo(L"OpenVolume: %s\n", FSInstance->DevicePathString);
 
-	/* TODO: Mount the NTFS volume */
+	/* Mount the NTFS volume */
+	Status = NtfsMountVolume(FSInstance);
+	if (EFI_ERROR(Status)) {
+		PrintStatusError(Status, L"Could not mount NTFS volume");
+		goto out;
+	}
 
 	/* Create the root file */
 	Status = NtfsAllocateFile(&RootFile, FSInstance);
@@ -217,11 +237,7 @@ FileOpenVolume(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* This, EFI_FILE_HANDLE* Root)
 		goto out;
 	}
 
-	/* TODO: Open the root file */
-	RootFile->IsRoot = TRUE;
-	RootFile->IsDir = TRUE;
-
-	/* Setup the path */
+	/* Setup the root path */
 	RootFile->Path = AllocateZeroPool(2 * sizeof(CHAR16));
 	if (RootFile->Path == NULL) {
 		Status = EFI_OUT_OF_RESOURCES;
@@ -231,16 +247,28 @@ FileOpenVolume(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* This, EFI_FILE_HANDLE* Root)
 	RootFile->Path[0] = PATH_CHAR;
 	RootFile->BaseName = &RootFile->Path[1];
 
-	/* Set the inital refcount */
-	RootFile->RefCount = 1;
+	/* Open the root file */
+	Status = NtfsOpenFile(RootFile);
+	if (EFI_ERROR(Status)) {
+		PrintStatusError(Status, L"Could not open root file");
+		goto out;
+	}
+
+	/* Increase RefCounts (which should NOT expected to be 0) */
+	RootFile->RefCount++;
+	FSInstance->TotalRefCount++;
+	PrintExtra(L"TotalRefCount = %d\n", FSInstance->TotalRefCount);
 
 	/* Return the root handle */
 	*Root = (EFI_FILE_HANDLE)RootFile;
 	Status = EFI_SUCCESS;
 
 out:
-	if (EFI_ERROR(Status))
+	if (EFI_ERROR(Status)) {
+		NtfsCloseFile(RootFile);
 		NtfsFreeFile(RootFile);
+		NtfsUnmountVolume(FSInstance);
+	}
 	return Status;
 }
 
@@ -294,6 +322,11 @@ VOID
 FSUninstall(EFI_FS* This, EFI_HANDLE ControllerHandle)
 {
 	PrintInfo(L"FSUninstall: %s\n", This->DevicePathString);
+
+	if (This->TotalRefCount > 0) {
+		PrintWarning(L"Files are still open on this volume! Forcing unmount...\n");
+		NtfsUnmountVolume(This);
+	}
 
 	gBS->UninstallMultipleProtocolInterfaces(ControllerHandle,
 		&gEfiSimpleFileSystemProtocolGuid, &This->FileIoInterface,

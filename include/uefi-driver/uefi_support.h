@@ -73,6 +73,80 @@
 #define FS_ASSERT(a)            FL_ASSERT(__FILE__, __LINE__, a)
 
 /*
+ * Secure string copy, that either uses the already secure version from
+ * EDK2, or duplicates it for gnu-efi and asserts on any error.
+ */
+static __inline VOID _SafeStrCpy(CHAR16* Destination, UINTN DestMax,
+	CONST CHAR16* Source, CONST CHAR8* File, CONST UINTN Line) {
+#ifdef _GNU_EFI
+	FL_ASSERT(File, Line, Destination != NULL);
+	FL_ASSERT(File, Line, Source != NULL);
+	FL_ASSERT(File, Line, DestMax != 0);
+	/*
+	 * EDK2 would use RSIZE_MAX, but we use the smaller PATH_MAX for
+	 * gnu-efi as it can help detect path overflows while debugging.
+	 */
+	FL_ASSERT(File, Line, DestMax <= PATH_MAX);
+	FL_ASSERT(File, Line, DestMax > StrLen(Source));
+	while (*Source != 0)
+		*(Destination++) = *(Source++);
+	*Destination = 0;
+#else
+	FL_ASSERT(File, Line, StrCpyS(Destination, DestMax, Source) == 0);
+#endif
+}
+
+#define SafeStrCpy(d, l, s) _SafeStrCpy(d, l, s, __FILE__, __LINE__)
+
+/*
+ * Secure string length, that asserts if the string is NULL or if
+ * the length is larger than a predetermined value (STRING_MAX)
+ */
+static __inline UINTN _SafeStrLen(CONST CHAR16* String, CONST CHAR8* File,
+	CONST UINTN Line) {
+	UINTN Len = 0;
+	FL_ASSERT(File, Line, String != NULL);
+	Len = StrLen(String);
+	FL_ASSERT(File, Line, Len < STRING_MAX);
+	return Len;
+}
+
+#define SafeStrLen(s) _SafeStrLen(s, __FILE__, __LINE__)
+
+/*
+ * Secure string size, that asserts if the string is NULL or if the size
+ * is larger than a predetermined value (STRING_MAX * sizeof(CHAR16)) or
+ * if the size is smaller than sizeof(CHAR16).
+ */
+static __inline UINTN _SafeStrSize(CONST CHAR16* String, CONST CHAR8* File,
+	CONST UINTN Line) {
+	UINTN Size = 0;
+	FL_ASSERT(File, Line, String != NULL);
+	Size = StrSize(String);
+	FL_ASSERT(File, Line, (Size >= sizeof(CHAR16)) &&
+		(Size < STRING_MAX * sizeof(CHAR16)));
+	return Size;
+}
+
+#define SafeStrSize(s) _SafeStrSize(s, __FILE__, __LINE__)
+
+/*
+ * EDK2 does not provide a StrDup call, so we define one.
+ */
+static __inline CHAR16* StrDup(CONST CHAR16* Src)
+{
+	UINTN   Len;
+	CHAR16* Dst;
+
+	/* Prefer SafeStrLen() over StrSize() for the checks */
+	Len = (SafeStrLen(Src) + 1) * sizeof(CHAR16);
+	Dst = AllocatePool(Len);
+	if (Dst != NULL)
+		CopyMem(Dst, Src, Len);
+	return Dst;
+}
+
+/*
  * Prototypes for the function calls provided in uefi_support.c
  */
 CHAR16* GuidToStr(EFI_GUID* Guid);
