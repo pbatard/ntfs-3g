@@ -37,7 +37,112 @@ EFI_STATUS EFIAPI
 FileOpen(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
 	CHAR16* Name, UINT64 Mode, UINT64 Attributes)
 {
-	return EFI_UNSUPPORTED;
+	EFI_STATUS Status;
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+	EFI_NTFS_FILE* NewFile = NULL;
+	CHAR16* Path = NULL;
+	INTN i, Len;
+
+	PrintInfo(L"Open(" PERCENT_P L"%s, \"%s\")\n", (UINTN)This,
+		File->IsRoot ? L" <ROOT>" : L"", Name);
+
+	if (NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume) && (Mode != EFI_FILE_MODE_READ)) {
+		PrintInfo(L"Invalid mode for read-only media\n", Name);
+		return EFI_WRITE_PROTECTED;
+	}
+
+	/* Additional failures */
+	if ((StrCmp(Name, L"..") == 0) && File->IsRoot) {
+		PrintInfo(L"Trying to open <ROOT>'s parent\n");
+		return EFI_NOT_FOUND;
+	}
+	if (!File->IsDir) {
+		PrintWarning(L"Parent is not a directory\n");
+		return EFI_NOT_FOUND;
+	}
+
+	/* See if we're trying to reopen current (which the EFI Shell insists on doing) */
+	if ((*Name == 0) || (StrCmp(Name, L".") == 0)) {
+		PrintInfo(L"  Reopening %s\n", File->IsRoot ? L"<ROOT>" : File->Path);
+		File->RefCount++;
+		File->FileSystem->TotalRefCount++;
+		PrintExtra(L"TotalRefCount = %d\n", File->FileSystem->TotalRefCount);
+		*New = &File->EfiFile;
+		PrintInfo(L"  RET: " PERCENT_P L"\n", (UINTN)*New);
+		return EFI_SUCCESS;
+	}
+
+	Path = AllocateZeroPool(PATH_MAX * sizeof(CHAR16));
+	if (Path == NULL) {
+		PrintError(L"Could not allocate path\n");
+		Status = EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
+
+	/* If we have an absolute path, don't bother completing with the parent */
+	if (IS_PATH_DELIMITER(Name[0])) {
+		Len = 0;
+	} else {
+		SafeStrCpy(Path, PATH_MAX, File->Path);
+		Len = SafeStrLen(Path);
+		/* Add delimiter */
+		Path[Len++] = PATH_CHAR;
+	}
+
+	/* Copy the rest of the path */
+	SafeStrCpy(&Path[Len], PATH_MAX - Len, Name);
+
+	/* Convert the delimiters if needed */
+	for (i = SafeStrLen(Path) - 1; i >= Len; i--) {
+		if (Path[i] == DOS_PATH_CHAR)
+			Path[i] = PATH_CHAR;
+	}
+
+	/* Clean the path by removing double delimiters and processing '.' and '..' */
+	CleanPath(Path);
+
+	/* Validate that our paths are non-empty and absolute */
+	FS_ASSERT(Path[0] == PATH_CHAR);
+
+	/* Allocate and initialise an instance of a file */
+	Status = NtfsAllocateFile(&NewFile, File->FileSystem);
+	if (EFI_ERROR(Status)) {
+		PrintStatusError(Status, L"Could not instantiate file");
+		goto out;
+	}
+
+	NewFile->Path = Path;
+	/* Avoid double free on error */
+	Path = NULL;
+
+	/* Set BaseName */
+	for (i = SafeStrLen(NewFile->Path) - 1; i >= 0; i--) {
+		if (NewFile->Path[i] == PATH_CHAR)
+			break;
+	}
+	NewFile->BaseName = &NewFile->Path[i + 1];
+
+	Status = NtfsOpenFile(NewFile);
+	if (EFI_ERROR(Status)) {
+		if (Status != EFI_NOT_FOUND)
+			PrintStatusError(Status, L"Could not open file '%s'", Name);
+		goto out;
+	}
+
+	NewFile->RefCount++;
+	File->FileSystem->TotalRefCount++;
+	PrintExtra(L"TotalRefCount = %d\n", File->FileSystem->TotalRefCount);
+	*New = &NewFile->EfiFile;
+	PrintInfo(L"  RET: " PERCENT_P L"\n", (UINTN)*New);
+	Status = EFI_SUCCESS;
+
+out:
+	if (EFI_ERROR(Status)) {
+		/* NB: This call only destroys the file if RefCount = 0 */
+		NtfsFreeFile(NewFile);
+	}
+	FreePool(Path);
+	return Status;
 }
 
 /* Ex version */
@@ -45,7 +150,7 @@ EFI_STATUS EFIAPI
 FileOpenEx(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New, CHAR16* Name,
 	UINT64 Mode, UINT64 Attributes, EFI_FILE_IO_TOKEN* Token)
 {
-	return EFI_UNSUPPORTED;
+	return FileOpen(This, New, Name, Mode, Attributes);
 }
 
 /**
@@ -57,7 +162,29 @@ FileOpenEx(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New, CHAR16* Name,
 EFI_STATUS EFIAPI
 FileClose(EFI_FILE_HANDLE This)
 {
-	return EFI_UNSUPPORTED;
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+	/* Keep a pointer to the FS since we're going to delete File */
+	EFI_FS* FileSystem = File->FileSystem;
+
+	PrintInfo(L"Close(" PERCENT_P L"|'%s') %s\n", (UINTN)This, File->Path,
+		File->IsRoot ? L"<ROOT>" : L"");
+
+	File->RefCount--;
+	if (File->RefCount <= 0) {
+		NtfsCloseFile(File);
+		/* NB: BaseName points into File->Path and does not need to be freed */
+		NtfsFreeFile(File);
+	}
+
+	/* If there are no more files open on the volume, unmount it */
+	FileSystem->TotalRefCount--;
+	PrintExtra(L"TotalRefCount = %d\n", FileSystem->TotalRefCount);
+	if (FileSystem->TotalRefCount <= 0) {
+		PrintInfo(L"Last file instance: Unmounting volume\n");
+		NtfsUnmountVolume(FileSystem);
+	}
+
+	return EFI_SUCCESS;
 }
 
 /**

@@ -33,6 +33,13 @@
 #endif
 #endif /* _GNU_EFI & !GNU_EFI_USE_MS_ABI */
 
+/* Some compilers complain when using %llx to print a pointer on 32-bit */
+#if defined(_M_ARM64) || defined(__aarch64__) || defined (_M_X64) || defined(__x86_64__)
+#define PERCENT_P               L"%llx"
+#else
+#define PERCENT_P               L"%x"
+#endif
+
 #ifndef ARRAYSIZE
 #define ARRAYSIZE(A)            (sizeof(A)/sizeof((A)[0]))
 #endif
