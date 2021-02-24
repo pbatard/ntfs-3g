@@ -20,6 +20,12 @@
 
 #include "uefi_driver.h"
 
+VOID NtfsSetErrno(EFI_STATUS Status);
 VOID NtfsSetLogger(UINTN LogLevel);
+BOOLEAN NtfsIsVolumeReadOnly(VOID* NtfsVolume);
+EFI_STATUS NtfsMountVolume(EFI_FS* FileSystem);
+EFI_STATUS NtfsUnmountVolume(EFI_FS* FileSystem);
 EFI_STATUS NtfsAllocateFile(EFI_NTFS_FILE** File, EFI_FS* FileSystem);
 VOID NtfsFreeFile(EFI_NTFS_FILE* File);
+EFI_STATUS NtfsOpenFile(EFI_NTFS_FILE* File);
+VOID NtfsCloseFile(EFI_NTFS_FILE* File);

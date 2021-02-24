@@ -58,6 +58,9 @@
 
 #endif /* __MAKEWITH_GNUEFI */
 
+/* Define the following to force NTFS volumes to be opened read-only */
+#define FORCE_READONLY
+
 #define NTFS_MUTEX_GUID { 0xf4ed18ca, 0xcdfb, 0x40ca, { 0x97, 0xec, 0x32, 0x2a, 0x8b, 0x01, 0x4e, 0x5f } }
 
 /* Version information to be displayed by the driver. */
@@ -79,6 +82,7 @@ typedef struct _EFI_NTFS_FILE {
 	CHAR16                          *BaseName;
 	INTN                             RefCount;
 	struct _EFI_FS                  *FileSystem;
+	VOID                            *NtfsInode;
 } EFI_NTFS_FILE;
 
 /* A file system instance */
@@ -92,7 +96,14 @@ typedef struct _EFI_FS {
 	EFI_DISK_IO2_PROTOCOL           *DiskIo2;
 	EFI_DISK_IO2_TOKEN               DiskIo2Token;
 	CHAR16                          *DevicePathString;
+	VOID                            *NtfsVolume;
+	CHAR16                          *NtfsVolumeLabel;
+	UINT64                           NtfsVolumeSerial;
+	INTN                             MountCount;
 } EFI_FS;
+
+/* The top of our file system instances list */
+extern LIST_ENTRY FsListHead;
 
 extern EFI_STATUS FSInstall(EFI_FS* This, EFI_HANDLE ControllerHandle);
 extern VOID FSUninstall(EFI_FS* This, EFI_HANDLE ControllerHandle);
