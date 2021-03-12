@@ -185,6 +185,7 @@ struct _ntfs_volume {
 		void *sb;	/* For kernel porting compatibility. */
 	};
 	char *vol_name;		/* Name of the volume. */
+	u64 vol_serial;		/* Serial number of the volume */
 	unsigned long state;	/* NTFS specific flags describing this volume.
 				   See ntfs_volume_state_bits above. */
 
