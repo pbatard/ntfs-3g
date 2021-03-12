@@ -199,6 +199,10 @@ int ntfs_boot_sector_parse(ntfs_volume *vol, const NTFS_BOOT_SECTOR *bs)
 	/* We return -1 with errno = EINVAL on error. */
 	errno = EINVAL;
 
+	/* The serial number can be used to detect media removal */
+	vol->vol_serial = le64_to_cpu(bs->volume_serial_number);
+	ntfs_log_debug("SerialNumber = 0x%llx\n", vol->vol_serial);
+
 	vol->sector_size = le16_to_cpu(bs->bpb.bytes_per_sector);
 	vol->sector_size_bits = ffs(vol->sector_size) - 1;
 	ntfs_log_debug("SectorSize = 0x%x\n", vol->sector_size);

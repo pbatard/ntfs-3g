@@ -86,7 +86,7 @@ typedef struct {
 	u8  reserved0[3];		/* zero */
 	s8  clusters_per_index_record;	/* Index block size in clusters. */
 	u8  reserved1[3];		/* zero */
-	le64 volume_serial_number;	/* Irrelevant (serial number). */
+	le64 volume_serial_number;	/* Serial number. */
 	le32 checksum;			/* Boot sector checksum. */
 /*0x54*/u8  bootstrap[426];		/* Irrelevant (boot up code). */
 	le16 end_of_sector_marker;	/* End of bootsector magic. Always is
