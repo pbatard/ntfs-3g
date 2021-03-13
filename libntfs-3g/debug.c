@@ -33,7 +33,7 @@
 #include "debug.h"
 #include "logging.h"
 
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 /**
  * ntfs_debug_runlist_dump - Dump a runlist.
  * @rl:
