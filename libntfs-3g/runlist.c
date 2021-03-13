@@ -897,7 +897,7 @@ static runlist_element *ntfs_mapping_pairs_decompress_i(const ntfs_volume *vol,
 				deltaxcn = (deltaxcn << 8) + buf[b];
 			/* Change the current lcn to it's new value. */
 			lcn += deltaxcn;
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 			/*
 			 * On NTFS 1.2-, apparently can have lcn == -1 to
 			 * indicate a hole. But we haven't verified ourselves

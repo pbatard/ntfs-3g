@@ -311,7 +311,7 @@ static runlist *load_runlist(ntfs_volume *rawvol, s64 offset_to_file_record, ATT
 			// Eurika!
 
 			// ntfs_mapping_pairs_decompress only use two values from vol. Just fake it.
-			// todo: it will also use vol->major_ver if defined(DEBUG). But only for printing purposes.
+			// todo: it will also use vol->major_ver if defined(ENABLE_DEBUG). But only for printing purposes.
 
 			// Assume ntfs_boot_sector_parse() was called.
 			return ntfs_mapping_pairs_decompress(rawvol, attr_rec, NULL);

@@ -1946,14 +1946,14 @@ int ntfs_delete(ntfs_volume *vol, const char *pathname,
 search:
 	while (!(err = ntfs_attr_lookup(AT_FILE_NAME, AT_UNNAMED, 0,
 					CASE_SENSITIVE, 0, NULL, 0, actx))) {
-	#ifdef DEBUG
+	#ifdef ENABLE_DEBUG
 		char *s;
 	#endif
 		IGNORE_CASE_BOOL case_sensitive = IGNORE_CASE;
 
 		fn = (FILE_NAME_ATTR*)((u8*)actx->attr +
 				le16_to_cpu(actx->attr->value_offset));
-	#ifdef DEBUG
+	#ifdef ENABLE_DEBUG
 		s = ntfs_attr_name_get(fn->file_name, fn->file_name_length);
 		ntfs_log_trace("name: '%s'  type: %d  dos: %d  win32: %d  "
 			       "case: %d\n", s, fn->file_name_type,

@@ -595,7 +595,7 @@ static int ntfs_mft_bitmap_find_free_rec(ntfs_volume *vol, ntfs_inode *base_ni)
 			"pass_end 0x%llx, data_pos 0x%llx.\n", pass,
 			(long long)pass_start, (long long)pass_end,
 			(long long)data_pos);
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 	byte = NULL;
 	b = 0;
 #endif

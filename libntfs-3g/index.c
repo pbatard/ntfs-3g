@@ -1632,7 +1632,7 @@ int ntfs_ie_add(ntfs_index_context *icx, INDEX_ENTRY *ie)
 	int allocated_size, new_size;
 	int ret = STATUS_ERROR;
 	
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 /* removed by JPA to make function usable for security indexes
 	char *fn;
 	fn = ntfs_ie_filename_get(ie);

@@ -4301,7 +4301,7 @@ static void setup_logging(char *parsed_options)
 		if (daemon(0, ctx->debug))
 			ntfs_log_error("Failed to daemonize.\n");
 		else if (!ctx->debug) {
-#ifndef DEBUG
+#ifndef ENABLE_DEBUG
 			ntfs_log_set_handler(ntfs_log_handler_syslog);
 			/* Override default libntfs identify. */
 			openlog(EXEC_NAME, LOG_PID, LOG_DAEMON);

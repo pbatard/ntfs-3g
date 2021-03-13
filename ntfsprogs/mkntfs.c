@@ -1006,8 +1006,8 @@ static s64 ntfs_rlwrite(struct ntfs_device *dev, const runlist *rl,
  *	-ENOSPC		There is not enough space available to complete
  *			operation. The caller has to make space before calling
  *			this.
- *	-EINVAL		Can only occur if mkntfs was compiled with -DDEBUG. Means
- *			the input parameters were faulty.
+ *	-EINVAL		Can only occur if mkntfs was compiled with -DENABLE_DEBUG.
+ *			Means the input parameters were faulty.
  */
 static int make_room_for_attribute(MFT_RECORD *m, char *pos, const u32 size)
 {
@@ -1015,7 +1015,7 @@ static int make_room_for_attribute(MFT_RECORD *m, char *pos, const u32 size)
 
 	if (!size)
 		return 0;
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 	/*
 	 * Rigorous consistency checks. Always return -EINVAL even if more
 	 * appropriate codes exist for simplicity of parsing the return value.
@@ -1548,7 +1548,7 @@ static int insert_positioned_attr_in_mft_record(MFT_RECORD *m,
 		 */
 		err = -EOPNOTSUPP;
 		goto err_out;
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 	} else if (err == -EINVAL) {
 		ntfs_log_error("BUG(): in insert_positioned_attribute_in_mft_"
 				"record(): make_room_for_attribute() returned "
@@ -1741,7 +1741,7 @@ static int insert_non_resident_attr_in_mft_record(MFT_RECORD *m,
 		 */
 		err = -EOPNOTSUPP;
 		goto err_out;
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 	} else if (err == -EINVAL) {
 		ntfs_log_error("BUG(): in insert_non_resident_attribute_in_"
 				"mft_record(): make_room_for_attribute() "
@@ -1885,7 +1885,7 @@ static int insert_resident_attr_in_mft_record(MFT_RECORD *m,
 		err = -EOPNOTSUPP;
 		goto err_out;
 	}
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 	if (err == -EINVAL) {
 		ntfs_log_error("BUG(): in insert_resident_attribute_in_mft_"
 				"record(): make_room_for_attribute() returned "
@@ -2593,7 +2593,7 @@ static int make_room_for_index_entry_in_index_block(INDEX_BLOCK *idx,
 
 	if (!size)
 		return 0;
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 	/*
 	 * Rigorous consistency checks. Always return -EINVAL even if more
 	 * appropriate codes exist for simplicity of parsing the return value.
@@ -3051,7 +3051,7 @@ static int insert_file_link_in_dir_index(INDEX_BLOCK *idx, leMFT_REF file_ref,
 	 */
 	while ((char*)ie < index_end && !(ie->ie_flags & INDEX_ENTRY_END)) {
 #if 0
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 		ntfs_log_debug("file_name_attr1->file_name_length = %i\n",
 				file_name->file_name_length);
 		if (file_name->file_name_length) {
@@ -3125,7 +3125,7 @@ static int insert_file_link_in_dir_index(INDEX_BLOCK *idx, leMFT_REF file_ref,
 		if (!i)
 			return -EEXIST;
 do_next:
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 		/* Next entry. */
 		if (!ie->length) {
 			ntfs_log_debug("BUG: ie->length is zero, breaking out "

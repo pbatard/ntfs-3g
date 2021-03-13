@@ -173,7 +173,7 @@ static void usage(void)
 		"    -P, --no-progress-bar  Don't show progress bar\n"
 		"    -v, --verbose          More output\n"
 		"    -h, --help             Display this help\n"
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 		"    -d, --debug            Show debug information\n"
 #endif
 		"\n", EXEC_NAME);
@@ -186,7 +186,7 @@ static void parse_options(int argc, char **argv)
 {
 	static const char *sopt = "-dhPv";
 	static const struct option lopt[] = {
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 		{ "debug",		no_argument,	NULL, 'd' },
 #endif
 		{ "help",		no_argument,	NULL, 'h' },
@@ -212,7 +212,7 @@ static void parse_options(int argc, char **argv)
 				usage();
 			}
 			break;
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 		case 'd':
 			opt.debug++;
 			break;
@@ -248,7 +248,7 @@ static void parse_options(int argc, char **argv)
 	fflush(stdout);
 	fflush(stderr);
 
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 	 if (!opt.debug)
 		if (!freopen("/dev/null", "w", stderr))
 			perr_exit("Failed to redirect stderr to /dev/null");
