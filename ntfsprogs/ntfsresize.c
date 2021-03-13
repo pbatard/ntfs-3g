@@ -356,7 +356,7 @@ static void usage(int ret)
 		"    -v, --verbose          More output\n"
 		"    -V, --version          Display version information\n"
 		"    -h, --help             Display this help\n"
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 		"    -d, --debug            Show debug information\n"
 #endif
 		"\n"
@@ -482,7 +482,7 @@ static int parse_options(int argc, char **argv)
 	static const struct option lopt[] = {
 		{ "bad-sectors",no_argument,		NULL, 'b' },
 		{ "check",	no_argument,		NULL, 'c' },
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 		{ "debug",	no_argument,		NULL, 'd' },
 #endif
 		{ "force",	no_argument,		NULL, 'f' },
@@ -599,7 +599,7 @@ static int parse_options(int argc, char **argv)
 	fflush(stdout);
 	fflush(stderr);
 
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 	if (!opt.debug)
 		if (!freopen("/dev/null", "w", stderr))
 			perr_exit("Failed to redirect stderr to /dev/null");

@@ -374,7 +374,7 @@ static void usage(int ret)
 		"    -f, --force            Force to progress (DANGEROUS)\n"
 		"        --full-logfile     Include the full logfile in metadata output\n"
 		"    -h, --help             Display this help\n"
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 		"    -d, --debug            Show debug information\n"
 #endif
 		"    -V, --version          Display version information\n"
@@ -405,7 +405,7 @@ static void parse_options(int argc, char **argv)
 {
 	static const char *sopt = "-dfhmno:O:qrstV";
 	static const struct option lopt[] = {
-#ifdef DEBUG
+#ifdef ENABLE_DEBUG
 		{ "debug",	      no_argument,	 NULL, 'd' },
 #endif
 		{ "quiet",	      no_argument,	 NULL, 'q' },
