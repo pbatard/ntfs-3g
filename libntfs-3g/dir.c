@@ -937,9 +937,6 @@ static u32 ntfs_dir_entry_type(ntfs_inode *dir_ni, MFT_REF mref,
  * ntfs_filldir - ntfs specific filldir method
  * @dir_ni:	ntfs inode of current directory
  * @pos:	current position in directory
- * @ivcn_bits:	log(2) of index vcn size
- * @index_type:	specifies whether @iu is an index root or an index allocation
- * @iu:		index root or index block to which @ie belongs
  * @ie:		current index entry
  * @dirent:	context for filldir callback supplied by the caller
  * @filldir:	filldir callback supplied by the caller
@@ -947,9 +944,8 @@ static u32 ntfs_dir_entry_type(ntfs_inode *dir_ni, MFT_REF mref,
  * Pass information specifying the current directory entry @ie to the @filldir
  * callback.
  */
-static int ntfs_filldir(ntfs_inode *dir_ni, s64 *pos, u8 ivcn_bits,
-		const INDEX_TYPE index_type, void* iu, INDEX_ENTRY *ie,
-		void *dirent, ntfs_filldir_t filldir)
+static int ntfs_filldir(ntfs_inode *dir_ni, s64 *pos,
+		INDEX_ENTRY *ie, void *dirent, ntfs_filldir_t filldir)
 {
 	FILE_NAME_ATTR *fn = &ie->key.file_name;
 	unsigned dt_type;
@@ -959,14 +955,7 @@ static int ntfs_filldir(ntfs_inode *dir_ni, s64 *pos, u8 ivcn_bits,
 	MFT_REF mref;
 
 	ntfs_log_trace("Entering.\n");
-	
-	/* Advance the position even if going to skip the entry. */
-	if (index_type == INDEX_TYPE_ALLOCATION)
-		*pos = (u8*)ie - (u8*)iu + (sle64_to_cpu(
-				((INDEX_ALLOCATION*)iu)->index_block_vcn) << ivcn_bits) +
-				dir_ni->vol->mft_record_size;
-	else /* if (index_type == INDEX_TYPE_ROOT) */
-		*pos = (u8*)ie - (u8*)iu;
+
 	mref = le64_to_cpu(ie->indexed_file);
 	metadata = (MREF(mref) != FILE_root) && (MREF(mref) < FILE_first_user);
 	/* Skip root directory self reference entry. */
@@ -1092,7 +1081,7 @@ err_out:
 int ntfs_readdir(ntfs_inode *dir_ni, s64 *pos,
 		void *dirent, ntfs_filldir_t filldir)
 {
-	s64 i_size, br, ia_pos, bmp_pos, ia_start;
+	s64 i_size, br, ia_pos, bmp_pos, ia_start, ia_offset;
 	ntfs_volume *vol;
 	ntfs_attr *ia_na, *bmp_na = NULL;
 	ntfs_attr_search_ctx *ctx = NULL;
@@ -1206,15 +1195,20 @@ int ntfs_readdir(ntfs_inode *dir_ni, s64 *pos,
 	}
 
 	index_end = (u8*)&ir->index + le32_to_cpu(ir->index.index_length);
-	/* The first index entry. */
-	ie = (INDEX_ENTRY*)((u8*)&ir->index +
-			le32_to_cpu(ir->index.entries_offset));
+
+	/* Switch from fake pos for '..' to actual pos. */
+	if (*pos == 2)
+		*pos = offsetof(INDEX_ROOT, index) +
+			le32_to_cpu(ir->index.entries_offset);
+
 	/*
 	 * Loop until we exceed valid memory (corruption case) or until we
 	 * reach the last entry or until filldir tells us it has had enough
 	 * or signals an error (both covered by the rc test).
 	 */
-	for (;; ie = (INDEX_ENTRY*)((u8*)ie + le16_to_cpu(ie->length))) {
+	for (;; *pos += le16_to_cpu(ie->length)) {
+		/* Compute index entry from pos. */
+		ie = (INDEX_ENTRY*)((u8*)ir + *pos);
 		ntfs_log_debug("In index root, offset %d.\n", (int)((u8*)ie - (u8*)ir));
 		/* Bounds checks. */
 		if ((u8*)ie < (u8*)ctx->mrec || (u8*)ie +
@@ -1247,8 +1241,7 @@ int ntfs_readdir(ntfs_inode *dir_ni, s64 *pos,
 		 * Submit the directory entry to ntfs_filldir(), which will
 		 * invoke the filldir() callback as appropriate.
 		 */
-		rc = ntfs_filldir(dir_ni, pos, index_vcn_size_bits,
-				INDEX_TYPE_ROOT, ir, ie, dirent, filldir);
+		rc = ntfs_filldir(dir_ni, pos, ie, dirent, filldir);
 		if (rc) {
 			ntfs_attr_put_search_ctx(ctx);
 			ctx = NULL;
@@ -1348,15 +1341,24 @@ find_next_index_buffer:
 	}
 	index_end = (u8*)&ia->index + le32_to_cpu(ia->index.index_length);
 
-	/* The first index entry. */
-	ie = (INDEX_ENTRY*)((u8*)&ia->index +
-			le32_to_cpu(ia->index.entries_offset));
+
+	/* Compute the index allocation offset, which is used below. */
+	ia_offset = sle64_to_cpu(((INDEX_ALLOCATION*)ia)->index_block_vcn);
+	ia_offset <<= index_vcn_size_bits;
+
+	/* Calculate the current pos. */
+	*pos = offsetof(INDEX_ALLOCATION, index) +
+		le32_to_cpu(ia->index.entries_offset) +
+		vol->mft_record_size + ia_offset;
+
 	/*
 	 * Loop until we exceed valid memory (corruption case) or until we
 	 * reach the last entry or until ntfs_filldir tells us it has had
 	 * enough or signals an error (both covered by the rc test).
 	 */
-	for (;; ie = (INDEX_ENTRY*)((u8*)ie + le16_to_cpu(ie->length))) {
+	for (;; *pos += le16_to_cpu(ie->length)) {
+		/* Use pos to compute the index entry. */
+		ie = (INDEX_ENTRY*)((u8*)ia + *pos - vol->mft_record_size - ia_offset);
 		ntfs_log_debug("In index allocation, offset 0x%llx.\n",
 				(long long)ia_start + ((u8*)ie - (u8*)ia));
 		/* Bounds checks. */
@@ -1389,8 +1391,7 @@ find_next_index_buffer:
 		 * Submit the directory entry to ntfs_filldir(), which will
 		 * invoke the filldir() callback as appropriate.
 		 */
-		rc = ntfs_filldir(dir_ni, pos, index_vcn_size_bits,
-				INDEX_TYPE_ALLOCATION, ia, ie, dirent, filldir);
+		rc = ntfs_filldir(dir_ni, pos, ie, dirent, filldir);
 		if (rc)
 			goto err_out;
 	}
