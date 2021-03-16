@@ -1115,7 +1115,7 @@ int ntfs_readdir(ntfs_inode *dir_ni, s64 *pos,
 	if (!ia_na) {
 		if (errno != ENOENT) {
 			ntfs_log_perror("Failed to open index allocation attribute. "
-				"Directory inode %lld is corrupt or bug",
+				"Directory inode %lld is corrupt or bug\n",
 				(unsigned long long)dir_ni->mft_no);
 			return -1;
 		}
@@ -1126,11 +1126,11 @@ int ntfs_readdir(ntfs_inode *dir_ni, s64 *pos,
 	rc = 0;
 
 	/* Are we at end of dir yet? */
-	if (*pos >= i_size + vol->mft_record_size)
-		goto done;
+	if (*pos < 0 || *pos >= i_size + vol->mft_record_size)
+		goto EOD;
 
 	/* Emulate . and .. for all directories. */
-	if (!*pos) {
+	if (*pos == 0) {
 		rc = filldir(dirent, dotdot, 1, FILE_NAME_POSIX, *pos,
 				MK_MREF(dir_ni->mft_no,
 				le16_to_cpu(dir_ni->mrec->sequence_number)),
@@ -1144,7 +1144,7 @@ int ntfs_readdir(ntfs_inode *dir_ni, s64 *pos,
 
 		parent_mref = ntfs_mft_get_parent_ref(dir_ni);
 		if (parent_mref == ERR_MREF(-1)) {
-			ntfs_log_perror("Parent directory not found");
+			ntfs_log_perror("Parent directory not found\n");
 			goto dir_err_out;
 		}
 
@@ -1162,10 +1162,10 @@ int ntfs_readdir(ntfs_inode *dir_ni, s64 *pos,
 	/* Get the offset into the index root attribute. */
 	ir_pos = (int)*pos;
 	/* Find the index root attribute in the mft record. */
-	if (ntfs_attr_lookup(AT_INDEX_ROOT, NTFS_INDEX_I30, 4, CASE_SENSITIVE, 0, NULL,
-			0, ctx)) {
+	if (ntfs_attr_lookup(AT_INDEX_ROOT, NTFS_INDEX_I30, 4, CASE_SENSITIVE,
+			0, NULL, 0, ctx)) {
 		ntfs_log_perror("Index root attribute missing in directory inode "
-				"%lld", (unsigned long long)dir_ni->mft_no);
+				"%lld\n", (unsigned long long)dir_ni->mft_no);
 		goto dir_err_out;
 	}
 	/* Get to the index root value. */
@@ -1270,7 +1270,7 @@ skip_index_root:
 
 	bmp_na = ntfs_attr_open(dir_ni, AT_BITMAP, NTFS_INDEX_I30, 4);
 	if (!bmp_na) {
-		ntfs_log_perror("Failed to open index bitmap attribute");
+		ntfs_log_perror("Failed to open index bitmap attribute\n");
 		goto dir_err_out;
 	}
 
@@ -1293,7 +1293,7 @@ skip_index_root:
 	if (br != bmp_buf_size) {
 		if (br != -1)
 			errno = EIO;
-		ntfs_log_perror("Failed to read from index bitmap attribute");
+		ntfs_log_perror("Failed to read from index bitmap attribute\n");
 		goto err_out;
 	}
 
@@ -1317,7 +1317,7 @@ find_next_index_buffer:
 		if (br != bmp_buf_size) {
 			if (br != -1)
 				errno = EIO;
-			ntfs_log_perror("Failed to read from index bitmap attribute");
+			ntfs_log_perror("Failed to read from index bitmap attribute\n");
 			goto err_out;
 		}
 	}
@@ -1330,7 +1330,7 @@ find_next_index_buffer:
 	if (br != 1) {
 		if (br != -1)
 			errno = EIO;
-		ntfs_log_perror("Failed to read index block");
+		ntfs_log_perror("Failed to read index block\n");
 		goto err_out;
 	}
 
@@ -1397,8 +1397,8 @@ find_next_index_buffer:
 	}
 	goto find_next_index_buffer;
 EOD:
-	/* We are finished, set *pos to EOD. */
-	*pos = i_size + vol->mft_record_size;
+	/* We are finished, set *pos to negative. */
+	*pos = -1;
 done:
 	free(ia);
 	free(bmp);
@@ -1406,7 +1406,7 @@ done:
 		ntfs_attr_close(bmp_na);
 	if (ia_na)
 		ntfs_attr_close(ia_na);
-	ntfs_log_debug("EOD, *pos 0x%llx, returning 0.\n", (long long)*pos);
+	ntfs_log_debug("done, *pos 0x%llx, returning 0.\n", (long long)*pos);
 	return 0;
 dir_err_out:
 	errno = EIO;
@@ -1718,7 +1718,7 @@ static ntfs_inode *__ntfs_create(ntfs_inode *dir_ni, le32 securid,
 	if (ntfs_index_add_filename(dir_ni, fn, MK_MREF(ni->mft_no,
 			le16_to_cpu(ni->mrec->sequence_number)))) {
 		err = errno;
-		ntfs_log_perror("Failed to add entry to the index");
+		ntfs_log_perror("Failed to add entry to the index\n");
 		goto err_out;
 	}
 	rollback_dir = 1;
@@ -1938,14 +1938,14 @@ int ntfs_delete(ntfs_volume *vol, const char *pathname,
 search:
 	while (!(err = ntfs_attr_lookup(AT_FILE_NAME, AT_UNNAMED, 0,
 					CASE_SENSITIVE, 0, NULL, 0, actx))) {
-	#ifdef ENABLE_DEBUG
+	#ifdef DEBUG
 		char *s;
 	#endif
 		IGNORE_CASE_BOOL case_sensitive = IGNORE_CASE;
 
 		fn = (FILE_NAME_ATTR*)((u8*)actx->attr +
 				le16_to_cpu(actx->attr->value_offset));
-	#ifdef ENABLE_DEBUG
+	#ifdef DEBUG
 		s = ntfs_attr_name_get(fn->file_name, fn->file_name_length);
 		ntfs_log_trace("name: '%s'  type: %d  dos: %d  win32: %d  "
 			       "case: %d\n", s, fn->file_name_type,
@@ -2200,7 +2200,7 @@ static int ntfs_link_i(ntfs_inode *ni, ntfs_inode *dir_ni, const ntfschar *name,
 	if (!ni || !dir_ni || !name || !name_len || 
 			ni->mft_no == dir_ni->mft_no) {
 		err = EINVAL;
-		ntfs_log_perror("ntfs_link wrong arguments");
+		ntfs_log_perror("ntfs_link wrong arguments\n");
 		goto err_out;
 	}
 	
@@ -2242,7 +2242,7 @@ static int ntfs_link_i(ntfs_inode *ni, ntfs_inode *dir_ni, const ntfschar *name,
 	if (ntfs_index_add_filename(dir_ni, fn, MK_MREF(ni->mft_no,
 			le16_to_cpu(ni->mrec->sequence_number)))) {
 		err = errno;
-		ntfs_log_perror("Failed to add filename to the index");
+		ntfs_log_perror("Failed to add filename to the index\n");
 		goto err_out;
 	}
 	/* Add FILE_NAME attribute to inode. */
