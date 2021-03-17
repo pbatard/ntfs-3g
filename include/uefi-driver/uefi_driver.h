@@ -102,6 +102,7 @@ typedef struct _EFI_FS {
 	INT64                            Offset;
 	INTN                             MountCount;
 	INTN                             TotalRefCount;
+	LIST_ENTRY                       LookupListHead;
 } EFI_FS;
 
 /* The top of our file system instances list */

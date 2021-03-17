@@ -48,7 +48,7 @@ EFI_STATUS NtfsMountVolume(EFI_FS* FileSystem);
 EFI_STATUS NtfsUnmountVolume(EFI_FS* FileSystem);
 EFI_STATUS NtfsAllocateFile(EFI_NTFS_FILE** File, EFI_FS* FileSystem);
 VOID NtfsFreeFile(EFI_NTFS_FILE* File);
-EFI_STATUS NtfsOpenFile(EFI_NTFS_FILE* File);
+EFI_STATUS NtfsOpenFile(EFI_NTFS_FILE** File);
 VOID NtfsCloseFile(EFI_NTFS_FILE* File);
 EFI_STATUS NtfsReadDirectory(EFI_NTFS_FILE* File, NTFS_DIRHOOK Hook,
 	VOID* HookData);
