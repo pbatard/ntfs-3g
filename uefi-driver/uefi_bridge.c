@@ -433,3 +433,20 @@ NtfsCloseFile(EFI_NTFS_FILE* File)
 		return;
 	ntfs_inode_close(File->NtfsInode);
 }
+
+/*
+ * Read the content of an existing directory
+ */
+EFI_STATUS
+NtfsReadDirectory(EFI_NTFS_FILE* File, NTFS_DIRHOOK Hook, VOID* HookData)
+{
+	if (File->DirPos == -1)
+		return EFI_END_OF_FILE;
+
+	if (ntfs_readdir(File->NtfsInode, &File->DirPos, HookData, Hook)) {
+		PrintError(L"%a failed: %a\n", __FUNCTION__, strerror(errno));
+		return ErrnoToEfiStatus();
+	}
+
+	return EFI_SUCCESS;
+}

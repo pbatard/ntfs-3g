@@ -20,6 +20,18 @@
 
 #include "uefi_driver.h"
 
+/* Same as 'FILE_root' and 'FILE_first_user' from layout.h's NTFS_SYSTEM_FILES */
+#define FILE_ROOT           5
+#define FILE_FIRST_USER     16
+
+/* Similar to the MREF() macro from libntfs-3g */
+#define GetInodeNumber(x)   ((UINT64)((x) & 0XFFFFFFFFFFFFULL))
+
+/* This typedef mirrors the ntfs_filldir_t one in ntfs-3g's dir.h */
+typedef INT32(*NTFS_DIRHOOK)(VOID* HookData, CONST CHAR16* Name,
+	CONST INT32 NameLen, CONST INT32 NameType, CONST INT64 Pos,
+	CONST UINT64 MRef, CONST UINT32 DtType);
+
 VOID NtfsSetErrno(EFI_STATUS Status);
 VOID NtfsSetLogger(UINTN LogLevel);
 BOOLEAN NtfsIsVolumeReadOnly(VOID* NtfsVolume);
@@ -29,3 +41,5 @@ EFI_STATUS NtfsAllocateFile(EFI_NTFS_FILE** File, EFI_FS* FileSystem);
 VOID NtfsFreeFile(EFI_NTFS_FILE* File);
 EFI_STATUS NtfsOpenFile(EFI_NTFS_FILE* File);
 VOID NtfsCloseFile(EFI_NTFS_FILE* File);
+EFI_STATUS NtfsReadDirectory(EFI_NTFS_FILE* File, NTFS_DIRHOOK Hook,
+	VOID* HookData);
