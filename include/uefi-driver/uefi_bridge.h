@@ -20,6 +20,14 @@
 
 #include "uefi_driver.h"
 
+/* Used with NtfsGetEfiTime */
+#define TIME_CREATED        0
+#define TIME_ACCESSED       1
+#define TIME_MODIFIED       2
+
+#define NTFS_TO_UNIX_TIME(t)    ((t - (NTFS_TIME_OFFSET)) / 10000000)
+#define UNIX_TO_NTFS_TIME(t)    ((t * 10000000) + NTFS_TIME_OFFSET)
+
 /* Same as 'FILE_root' and 'FILE_first_user' from layout.h's NTFS_SYSTEM_FILES */
 #define FILE_ROOT           5
 #define FILE_FIRST_USER     16
@@ -34,6 +42,7 @@ typedef INT32(*NTFS_DIRHOOK)(VOID* HookData, CONST CHAR16* Name,
 
 VOID NtfsSetErrno(EFI_STATUS Status);
 VOID NtfsSetLogger(UINTN LogLevel);
+VOID NtfsGetEfiTime(EFI_NTFS_FILE* File, EFI_TIME* Time, INTN Type);
 BOOLEAN NtfsIsVolumeReadOnly(VOID* NtfsVolume);
 EFI_STATUS NtfsMountVolume(EFI_FS* FileSystem);
 EFI_STATUS NtfsUnmountVolume(EFI_FS* FileSystem);
@@ -43,3 +52,8 @@ EFI_STATUS NtfsOpenFile(EFI_NTFS_FILE* File);
 VOID NtfsCloseFile(EFI_NTFS_FILE* File);
 EFI_STATUS NtfsReadDirectory(EFI_NTFS_FILE* File, NTFS_DIRHOOK Hook,
 	VOID* HookData);
+EFI_STATUS NtfsReadFile(EFI_NTFS_FILE* File, VOID* Data, UINTN* Len);
+EFI_STATUS NtfsGetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info,
+	CONST UINT64 MRef, BOOLEAN IsDir);
+UINT64 NtfsGetVolumeFreeSpace(VOID* NtfsVolume);
+UINT64 NtfsGetFileSize(EFI_NTFS_FILE* File);
