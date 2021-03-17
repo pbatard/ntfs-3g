@@ -202,6 +202,25 @@ FileClose(EFI_FILE_HANDLE This)
 EFI_STATUS EFIAPI
 FileDelete(EFI_FILE_HANDLE This)
 {
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+
+	PrintInfo(L"Delete(" PERCENT_P L"|'%s') %s\n", (UINTN)This, File->Path,
+		File->IsRoot ? L"<ROOT>" : L"");
+
+	if (File->IsRoot || File->NtfsInode == NULL)
+		return EFI_ACCESS_DENIED;
+
+	FileClose(This);
+
+	/* Don't delete root or files that have more than one ref */
+	if (File->IsRoot || File->RefCount > 0)
+		return EFI_WARN_DELETE_FAILURE;
+
+	if (NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume)) {
+		PrintError(L"Cannot delete '%s'\n", File->Path);
+		return EFI_WARN_DELETE_FAILURE;
+	}
+
 	return EFI_UNSUPPORTED;
 }
 
@@ -212,7 +231,7 @@ static INT32 DirHook(VOID* Data, CONST CHAR16* Name,
 	CONST INT32 NameLen, CONST INT32 NameType, CONST INT64 Pos,
 	CONST UINT64 MRef, CONST UINT32 DtType)
 {
-	const EFI_TIME Time = { 1970, 01, 01, 00, 00, 00, 0, 0, 0, 0, 0 };
+	EFI_STATUS Status;
 	DIR_DATA* HookData = (DIR_DATA*)Data;
 
 	/* Don't list any system files except root */
@@ -230,15 +249,14 @@ static INT32 DirHook(VOID* Data, CONST CHAR16* Name,
 	HookData->Info->FileName[NameLen] = 0;
 	HookData->Info->Size = SIZE_OF_EFI_FILE_INFO + ((UINTN)NameLen + 1) * sizeof(CHAR16);
 
-	/* TODO: Set the Info attributes we obtain from the inode */
-	HookData->Info->Attribute = EFI_FILE_READ_ONLY;
-	if (DtType == 4)
-		HookData->Info->Attribute |= EFI_FILE_DIRECTORY;
-	HookData->Info->FileSize = 0;
-	HookData->Info->PhysicalSize = 0;
-	CopyMem(&HookData->Info->CreateTime, &Time, sizeof(Time));
-	CopyMem(&HookData->Info->LastAccessTime, &Time, sizeof(Time));
-	CopyMem(&HookData->Info->ModificationTime, &Time, sizeof(Time));
+	/* Set the Info attributes we obtain from the inode */
+	Status = NtfsGetFileInfo(HookData->Parent, HookData->Info,
+		MRef, (DtType == 4));	/* DtType is 4 for directories */
+	if (EFI_ERROR(Status)) {
+		PrintStatusError(Status, L"Could not get directory entry info");
+		NtfsSetErrno(Status);
+		return -1;
+	}
 
 	/* One shot */
 	return 1;
@@ -296,14 +314,14 @@ FileRead(EFI_FILE_HANDLE This, UINTN* Len, VOID* Data)
 	if (File->IsDir)
 		return FileReadDir(File, Len, Data);
 
-	return EFI_UNSUPPORTED;
+	return NtfsReadFile(File, Data, Len);
 }
 
 /* Ex version */
 EFI_STATUS EFIAPI
 FileReadEx(IN EFI_FILE_PROTOCOL *This, IN OUT EFI_FILE_IO_TOKEN *Token)
 {
-	return EFI_UNSUPPORTED;
+	return FileRead(This, &(Token->BufferSize), Token->Buffer);
 }
 
 /**
@@ -317,6 +335,11 @@ FileReadEx(IN EFI_FILE_PROTOCOL *This, IN OUT EFI_FILE_IO_TOKEN *Token)
 EFI_STATUS EFIAPI
 FileWrite(EFI_FILE_HANDLE This, UINTN* Len, VOID* Data)
 {
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+
+	if (NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume))
+		return EFI_WRITE_PROTECTED;
+
 	return EFI_UNSUPPORTED;
 }
 
@@ -324,7 +347,7 @@ FileWrite(EFI_FILE_HANDLE This, UINTN* Len, VOID* Data)
 EFI_STATUS EFIAPI
 FileWriteEx(IN EFI_FILE_PROTOCOL* This, EFI_FILE_IO_TOKEN* Token)
 {
-	return EFI_UNSUPPORTED;
+	return FileWrite(This, &(Token->BufferSize), Token->Buffer);
 }
 
 /**
@@ -338,6 +361,7 @@ EFI_STATUS EFIAPI
 FileSetPosition(EFI_FILE_HANDLE This, UINT64 Position)
 {
 	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+	UINT64 FileSize;
 
 	PrintInfo(L"SetPosition(" PERCENT_P L"|'%s', %lld) %s\n", (UINTN) This,
 		File->Path, Position, (File->IsDir) ? L"<DIR>" : L"");
@@ -353,7 +377,22 @@ FileSetPosition(EFI_FILE_HANDLE This, UINT64 Position)
 		return EFI_SUCCESS;
 	}
 
-	return EFI_UNSUPPORTED;
+	FileSize = NtfsGetFileSize(File);
+	/* Per specs */
+	if (Position == 0xFFFFFFFFFFFFFFFFULL)
+		Position = FileSize;
+	if (Position > FileSize) {
+		PrintError(L"'%s': Cannot seek to #%llx of %llx\n",
+				File->Path, Position, FileSize);
+		return EFI_UNSUPPORTED;
+	}
+
+	/* Set position */
+	File->Offset = Position;
+	PrintDebug(L"'%s': Position set to %llx\n",
+			File->Path, Position);
+
+	return EFI_SUCCESS;
 }
 
 /**
@@ -366,7 +405,19 @@ FileSetPosition(EFI_FILE_HANDLE This, UINT64 Position)
 EFI_STATUS EFIAPI
 FileGetPosition(EFI_FILE_HANDLE This, UINT64* Position)
 {
-	return EFI_UNSUPPORTED;
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+
+	PrintInfo(L"GetPosition(" PERCENT_P L"|'%s', %lld)\n", (UINTN) This, File->Path);
+
+	if (File->NtfsInode == NULL)
+		return EFI_DEVICE_ERROR;
+
+	/* Per UEFI specs */
+	if (File->IsDir)
+		return EFI_UNSUPPORTED;
+
+	*Position = File->Offset;
+	return EFI_SUCCESS;
 }
 
 /**
@@ -381,18 +432,22 @@ FileGetPosition(EFI_FILE_HANDLE This, UINT64* Position)
 EFI_STATUS EFIAPI
 FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 {
-	const EFI_TIME Time = { 1970, 01, 01, 00, 00, 00, 0, 0, 0, 0, 0 };
+	EFI_STATUS Status;
 	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
 	EFI_FILE_INFO* Info = (EFI_FILE_INFO*)Data;
+	EFI_FILE_SYSTEM_INFO *FSInfo = (EFI_FILE_SYSTEM_INFO*)Data;
+	EFI_FILE_SYSTEM_VOLUME_LABEL *VLInfo = (EFI_FILE_SYSTEM_VOLUME_LABEL*)Data;
 	UINTN Size;
 
 	PrintInfo(L"GetInfo(" PERCENT_P L"|'%s', %d) %s\n", (UINTN) This,
 		File->Path, *Len, File->IsDir ? L"<DIR>" : L"");
 
+	if (File->NtfsInode == NULL)
+		return EFI_DEVICE_ERROR;
+
 	/* Determine information to return */
 	if (CompareMem(Type, &gEfiFileInfoGuid, sizeof(*Type)) == 0) {
 
-		/* Fill file information */
 		PrintExtra(L"Get regular file information\n");
 
 		Size = SafeStrSize(File->BaseName);
@@ -402,22 +457,84 @@ FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 			return EFI_BUFFER_TOO_SMALL;
 		}
 
-		Info->Size = *Len;
-
-		/* TODO: Set the Info attributes we obtain from the path */
-		ZeroMem(Data, sizeof(EFI_FILE_INFO));
-
-		CopyMem(&Info->CreateTime, &Time, sizeof(Time));
-		CopyMem(&Info->LastAccessTime, &Time, sizeof(Time));
-		CopyMem(&Info->ModificationTime, &Time, sizeof(Time));
-
-		Info->Attribute = EFI_FILE_READ_ONLY;
-		if (File->IsDir)
-			Info->Attribute |= EFI_FILE_DIRECTORY;
+		/* Set the Info attributes we obtain from the path */
+		ZeroMem(Data, SIZE_OF_EFI_FILE_INFO);
+		Status = NtfsGetFileInfo(File, Info, 0, File->IsDir);
+		if (EFI_ERROR(Status)) {
+			PrintStatusError(Status, L"Could not get file info");
+			return Status;
+		}
 
 		CopyMem(Info->FileName, File->BaseName, Size);
 		Info->Size = SIZE_OF_EFI_FILE_INFO + Size;
 		*Len = (INTN)Info->Size;
+		return EFI_SUCCESS;
+
+	} else if (CompareMem(Type, &gEfiFileSystemInfoGuid, sizeof(*Type)) == 0) {
+
+		PrintExtra(L"Get file system information\n");
+
+		Size = (File->FileSystem->NtfsVolumeLabel == NULL) ?
+			sizeof(CHAR16) : SafeStrSize(File->FileSystem->NtfsVolumeLabel);
+		if (*Len < SIZE_OF_EFI_FILE_SYSTEM_INFO + Size) {
+			*Len = SIZE_OF_EFI_FILE_SYSTEM_INFO + Size;
+			return EFI_BUFFER_TOO_SMALL;
+		}
+
+		ZeroMem(Data, SIZE_OF_EFI_FILE_SYSTEM_INFO + sizeof(CHAR16));
+		FSInfo->Size = SIZE_OF_EFI_FILE_SYSTEM_INFO;
+		FSInfo->ReadOnly = NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume);
+
+		/* NB: This should really be cluster size, but we don't have access to that */
+		if (File->FileSystem->BlockIo2 != NULL)
+			FSInfo->BlockSize = File->FileSystem->BlockIo2->Media->BlockSize;
+		else
+			FSInfo->BlockSize = File->FileSystem->BlockIo->Media->BlockSize;
+		if (FSInfo->BlockSize == 0) {
+			PrintWarning(L"Corrected Media BlockSize\n");
+			FSInfo->BlockSize = 512;
+		}
+
+		if (File->FileSystem->BlockIo2 != NULL) {
+			FSInfo->VolumeSize = (File->FileSystem->BlockIo2->Media->LastBlock + 1) *
+				FSInfo->BlockSize;
+		} else {
+			FSInfo->VolumeSize = (File->FileSystem->BlockIo->Media->LastBlock + 1) *
+				FSInfo->BlockSize;
+		}
+
+		FSInfo->FreeSpace = NtfsGetVolumeFreeSpace(File->FileSystem->NtfsVolume);
+
+		/* NUL string has already been populated if NtfsVolumeLabel is NULL */
+		if (File->FileSystem->NtfsVolumeLabel != NULL)
+			CopyMem(FSInfo->VolumeLabel, File->FileSystem->NtfsVolumeLabel, Size);
+		FSInfo->Size = SIZE_OF_EFI_FILE_SYSTEM_INFO + Size;
+		*Len = (INTN)FSInfo->Size;
+		return EFI_SUCCESS;
+
+	} else if (CompareMem(Type, &gEfiFileSystemVolumeLabelInfoIdGuid, sizeof(*Type)) == 0) {
+
+		PrintExtra(L"Get volume label\n");
+
+		/* Per specs, only valid for root */
+		if (!File->IsRoot)
+			return EFI_ACCESS_DENIED;
+
+		if (*Len < sizeof(CHAR16))
+			return EFI_BUFFER_TOO_SMALL;
+
+		Size = (File->FileSystem->NtfsVolumeLabel == NULL) ?
+			sizeof(CHAR16) : SafeStrSize(File->FileSystem->NtfsVolumeLabel);
+		if (Size < *Len) {
+			*Len = Size;
+			return EFI_BUFFER_TOO_SMALL;
+		}
+
+		if (File->FileSystem->NtfsVolumeLabel != NULL)
+			CopyMem(VLInfo->VolumeLabel, File->FileSystem->NtfsVolumeLabel, Size);
+		else
+			VLInfo->VolumeLabel[0] = 0;
+		*Len = Size;
 		return EFI_SUCCESS;
 
 	} else {
@@ -440,6 +557,14 @@ FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 EFI_STATUS EFIAPI
 FileSetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN Len, VOID* Data)
 {
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+
+	PrintInfo(L"SetInfo(" PERCENT_P L"|'%s', %d) %s\n", (UINTN)This,
+		File->Path, Len, File->IsDir ? L"<DIR>" : L"");
+
+	if (NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume))
+		return EFI_WRITE_PROTECTED;
+
 	return EFI_UNSUPPORTED;
 }
 
@@ -455,6 +580,13 @@ FileSetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN Len, VOID* Data)
 EFI_STATUS EFIAPI
 FileFlush(EFI_FILE_HANDLE This)
 {
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+
+	PrintInfo(L"Flush(" PERCENT_P L"|'%s')\n", (UINTN) This, File->Path);
+
+	if (NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume))
+		return EFI_SUCCESS;
+
 	return EFI_UNSUPPORTED;
 }
 
@@ -462,7 +594,7 @@ FileFlush(EFI_FILE_HANDLE This)
 EFI_STATUS EFIAPI
 FileFlushEx(EFI_FILE_HANDLE This, EFI_FILE_IO_TOKEN* Token)
 {
-	return EFI_UNSUPPORTED;
+	return FileFlush(This);
 }
 
 /**

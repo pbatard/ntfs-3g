@@ -219,6 +219,37 @@ VOID NtfsSetErrno(EFI_STATUS Status)
 }
 
 /*
+ * Compute an EFI_TIME representation of an ntfs_time field
+ */
+VOID
+NtfsGetEfiTime(EFI_NTFS_FILE* File, EFI_TIME* Time, INTN Type)
+{
+	ntfs_inode* ni = (ntfs_inode*)File->NtfsInode;
+	ntfs_time time = NTFS_TIME_OFFSET;
+
+	FS_ASSERT(ni != NULL);
+
+	if (ni != NULL) {
+		switch (Type) {
+		case TIME_CREATED:
+			time = ni->creation_time;
+			break;
+		case TIME_ACCESSED:
+			time = ni->last_access_time;
+			break;
+		case TIME_MODIFIED:
+			time = ni->last_data_change_time;
+			break;
+		default:
+			FS_ASSERT(TRUE);
+			break;
+		}
+	}
+
+	UnixTimeToEfiTime(NTFS_TO_UNIX_TIME(time), Time);
+}
+
+/*
  * Translate a UEFI driver log level into a libntfs-3g log level.
  */
 VOID
@@ -344,6 +375,19 @@ NtfsUnmountVolume(EFI_FS* FileSystem)
 }
 
 /*
+ * Returns the amount of free space on the volume
+ */
+UINT64
+NtfsGetVolumeFreeSpace(VOID* NtfsVolume)
+{
+	ntfs_volume* vol = (ntfs_volume*)NtfsVolume;
+
+	ntfs_volume_get_free_space(vol);
+
+	return vol->free_clusters * vol->cluster_size;
+}
+
+/*
  * Allocate a new EFI_NTFS_FILE data structure
  */
 EFI_STATUS
@@ -447,6 +491,115 @@ NtfsReadDirectory(EFI_NTFS_FILE* File, NTFS_DIRHOOK Hook, VOID* HookData)
 		PrintError(L"%a failed: %a\n", __FUNCTION__, strerror(errno));
 		return ErrnoToEfiStatus();
 	}
+
+	return EFI_SUCCESS;
+}
+
+/*
+ * Read from an open file into a data buffer
+ */
+EFI_STATUS
+NtfsReadFile(EFI_NTFS_FILE* File, VOID* Data, UINTN* Len)
+{
+	ntfs_attr* na = NULL;
+	s64 max_read, size = *Len;
+
+	*Len = 0;
+
+	na = ntfs_attr_open(File->NtfsInode, AT_DATA, AT_UNNAMED, 0);
+	if (!na) {
+		PrintError(L"%a failed: %a\n", __FUNCTION__, strerror(errno));
+		return ErrnoToEfiStatus();
+	}
+
+	max_read = na->data_size;
+	if (File->Offset + size > max_read) {
+		if (File->Offset > max_read) {
+			/* Per UEFI specs */
+			ntfs_attr_close(na);
+			return EFI_DEVICE_ERROR;
+		}
+		size = max_read - File->Offset;
+	}
+
+	while (size > 0) {
+		s64 ret = ntfs_attr_pread(na, File->Offset, size, &((UINT8*)Data)[*Len]);
+		if (ret != size)
+			PrintError(L"%a: Error reading inode %lld at offset %lld: %lld <> %lld",
+				((ntfs_inode*)File->NtfsInode)->mft_no,
+				File->Offset, *Len, ret);
+		if (ret <= 0 || ret > size) {
+			ntfs_attr_close(na);
+			if (ret >= 0)
+				errno = EIO;
+			PrintError(L"%a failed: %a\n", __FUNCTION__, strerror(errno));
+			return ErrnoToEfiStatus();
+		}
+		size -= ret;
+		File->Offset += ret;
+		*Len += ret;
+	}
+
+	ntfs_attr_close(na);
+
+	return EFI_SUCCESS;
+}
+
+/*
+ * Return the current size occupied by a file
+ */
+UINT64
+NtfsGetFileSize(EFI_NTFS_FILE* File)
+{
+	if (File->NtfsInode == NULL)
+		return 0;
+	return ((ntfs_inode*)File->NtfsInode)->data_size;
+}
+
+/*
+ * Fill an EFI_FILE_INFO struct with data from the NTFS inode.
+ * This function takes either a File or an MREF (with the MREF
+ * being used if it's non-zero).
+ */
+EFI_STATUS
+NtfsGetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info, CONST UINT64 MRef, BOOLEAN IsDir)
+{
+	BOOLEAN NeedClose = FALSE;
+	ntfs_inode* ni = File->NtfsInode;
+
+	/*
+	 * If Non-zero MREF, we are listing a dir, in which case we need
+	 * to open (and later close) the inode.
+	 */
+	if (MRef != 0) {
+		ni = ntfs_inode_open(File->FileSystem->NtfsVolume, MRef);
+		NeedClose = TRUE;
+	} else
+		PrintExtra(L"NtfsGetInfo for inode: %lld\n", ni->mft_no);
+
+	if (ni == NULL)
+		return EFI_NOT_FOUND;
+
+	Info->FileSize = ni->data_size;
+	Info->PhysicalSize = ni->allocated_size;
+	UnixTimeToEfiTime(NTFS_TO_UNIX_TIME(ni->creation_time), &Info->CreateTime);
+	UnixTimeToEfiTime(NTFS_TO_UNIX_TIME(ni->last_access_time), &Info->LastAccessTime);
+	UnixTimeToEfiTime(NTFS_TO_UNIX_TIME(ni->last_data_change_time), &Info->ModificationTime);
+
+	Info->Attribute = 0;
+	if (IsDir)
+		Info->Attribute |= EFI_FILE_DIRECTORY;
+	if (ni->flags & FILE_ATTR_READONLY || NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume))
+		Info->Attribute |= EFI_FILE_READ_ONLY;
+	if (ni->flags & FILE_ATTR_HIDDEN)
+		Info->Attribute |= EFI_FILE_HIDDEN;
+	if (ni->flags & FILE_ATTR_SYSTEM)
+		Info->Attribute |= EFI_FILE_SYSTEM;
+	if (ni->flags & FILE_ATTR_ARCHIVE)
+		Info->Attribute |= EFI_FILE_ARCHIVE;
+
+	if (NeedClose)
+		ntfs_inode_close(ni);
 
 	return EFI_SUCCESS;
 }
