@@ -101,6 +101,16 @@ extern int ntfs_link(ntfs_inode *ni, ntfs_inode *dir_ni, const ntfschar *name,
  * the caller specify what kind of dirent layout it wants to have.
  * This allows the caller to read directories into their application or
  * to have different dirent layouts depending on the binary type.
+ *
+ * The values returned from this call have the following effect:
+ * <0: Stops readdir() execution and produce an error code.
+ *  0: Continue calling into "ntfs_filldir" until all directory entries
+ *     have been processed, at which point readdir() returns.
+ * >0: Force readdir() to return with a successful return code and an
+ *     updated pos value. This pos value can then be fed into a subsequent
+ *     readdir() call to process the next entry, with either a new call to
+ *     "ntfs_filldir" being issued, or, if no more entries are available,
+ *     with readdir() returning and the value at address pos set to -1.
  */
 typedef int (*ntfs_filldir_t)(void *dirent, const ntfschar *name,
 		const int name_len, const int name_type, const s64 pos,
