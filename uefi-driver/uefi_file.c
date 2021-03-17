@@ -23,6 +23,12 @@
 #include "uefi_logging.h"
 #include "uefi_support.h"
 
+/* Structure used with DirHook */
+typedef struct {
+	EFI_NTFS_FILE* Parent;
+	EFI_FILE_INFO* Info;
+} DIR_DATA;
+
 /**
  * Open file
  *
@@ -200,6 +206,74 @@ FileDelete(EFI_FILE_HANDLE This)
 }
 
 /**
+ * Process directory entries
+ */
+static INT32 DirHook(VOID* Data, CONST CHAR16* Name,
+	CONST INT32 NameLen, CONST INT32 NameType, CONST INT64 Pos,
+	CONST UINT64 MRef, CONST UINT32 DtType)
+{
+	const EFI_TIME Time = { 1970, 01, 01, 00, 00, 00, 0, 0, 0, 0, 0 };
+	DIR_DATA* HookData = (DIR_DATA*)Data;
+
+	/* Don't list any system files except root */
+	if (GetInodeNumber(MRef) < FILE_FIRST_USER && GetInodeNumber(MRef) != FILE_ROOT)
+		return 0;
+
+	/* Sanity check since the maximum size of an NTFS file name is 255 */
+	FS_ASSERT(NameLen < 256);
+
+	if (HookData->Info->Size < ((UINTN)NameLen + 1) * sizeof(CHAR16)) {
+		NtfsSetErrno(EFI_BUFFER_TOO_SMALL);
+		return -1;
+	}
+	CopyMem(HookData->Info->FileName, Name, NameLen * sizeof(CHAR16));
+	HookData->Info->FileName[NameLen] = 0;
+	HookData->Info->Size = SIZE_OF_EFI_FILE_INFO + ((UINTN)NameLen + 1) * sizeof(CHAR16);
+
+	/* TODO: Set the Info attributes we obtain from the inode */
+	HookData->Info->Attribute = EFI_FILE_READ_ONLY;
+	if (DtType == 4)
+		HookData->Info->Attribute |= EFI_FILE_DIRECTORY;
+	HookData->Info->FileSize = 0;
+	HookData->Info->PhysicalSize = 0;
+	CopyMem(&HookData->Info->CreateTime, &Time, sizeof(Time));
+	CopyMem(&HookData->Info->LastAccessTime, &Time, sizeof(Time));
+	CopyMem(&HookData->Info->ModificationTime, &Time, sizeof(Time));
+
+	/* One shot */
+	return 1;
+}
+
+/**
+ * Read directory entry
+ *
+ * @v file			EFI file
+ * @v Len			Length to read
+ * @v Data			Data buffer
+ * @ret Status		EFI status code
+ */
+static EFI_STATUS
+FileReadDir(EFI_NTFS_FILE* File, UINTN* Len, VOID* Data)
+{
+	DIR_DATA HookData = { File, (EFI_FILE_INFO*)Data };
+	EFI_STATUS Status;
+
+	HookData.Info->Size = *Len;
+	Status = NtfsReadDirectory(File, DirHook, &HookData);
+	if (EFI_ERROR(Status)) {
+		if (Status == EFI_END_OF_FILE) {
+			*Len = 0;
+			return EFI_SUCCESS;
+		}
+		PrintStatusError(Status, L"Directory listing failed");
+		return Status;
+	}
+
+	*Len = (UINTN)HookData.Info->Size;
+	return EFI_SUCCESS;
+}
+
+/**
  * Read from file
  *
  * @v This			File handle
@@ -210,6 +284,18 @@ FileDelete(EFI_FILE_HANDLE This)
 EFI_STATUS EFIAPI
 FileRead(EFI_FILE_HANDLE This, UINTN* Len, VOID* Data)
 {
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+
+	PrintExtra(L"Read(" PERCENT_P L"|'%s', %d) %s\n", (UINTN)This, File->Path,
+		*Len, File->IsDir ? L"<DIR>" : L"");
+
+	if (File->NtfsInode == NULL)
+		return EFI_DEVICE_ERROR;
+
+	/* If this is a directory, then fetch the directory entries */
+	if (File->IsDir)
+		return FileReadDir(File, Len, Data);
+
 	return EFI_UNSUPPORTED;
 }
 
@@ -251,6 +337,22 @@ FileWriteEx(IN EFI_FILE_PROTOCOL* This, EFI_FILE_IO_TOKEN* Token)
 EFI_STATUS EFIAPI
 FileSetPosition(EFI_FILE_HANDLE This, UINT64 Position)
 {
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+
+	PrintInfo(L"SetPosition(" PERCENT_P L"|'%s', %lld) %s\n", (UINTN) This,
+		File->Path, Position, (File->IsDir) ? L"<DIR>" : L"");
+
+	if (File->NtfsInode == NULL)
+		return EFI_DEVICE_ERROR;
+
+	if (File->IsDir) {
+		/* Per specs: "The only position that may be set is zero" */
+		if (Position != 0)
+			return EFI_UNSUPPORTED;
+		File->DirPos = 0;
+		return EFI_SUCCESS;
+	}
+
 	return EFI_UNSUPPORTED;
 }
 
@@ -279,7 +381,51 @@ FileGetPosition(EFI_FILE_HANDLE This, UINT64* Position)
 EFI_STATUS EFIAPI
 FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 {
-	return EFI_UNSUPPORTED;
+	const EFI_TIME Time = { 1970, 01, 01, 00, 00, 00, 0, 0, 0, 0, 0 };
+	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+	EFI_FILE_INFO* Info = (EFI_FILE_INFO*)Data;
+	UINTN Size;
+
+	PrintInfo(L"GetInfo(" PERCENT_P L"|'%s', %d) %s\n", (UINTN) This,
+		File->Path, *Len, File->IsDir ? L"<DIR>" : L"");
+
+	/* Determine information to return */
+	if (CompareMem(Type, &gEfiFileInfoGuid, sizeof(*Type)) == 0) {
+
+		/* Fill file information */
+		PrintExtra(L"Get regular file information\n");
+
+		Size = SafeStrSize(File->BaseName);
+		FS_ASSERT(Size >= sizeof(CHAR16));
+		if (*Len < SIZE_OF_EFI_FILE_INFO + Size) {
+			*Len = SIZE_OF_EFI_FILE_INFO + Size;
+			return EFI_BUFFER_TOO_SMALL;
+		}
+
+		Info->Size = *Len;
+
+		/* TODO: Set the Info attributes we obtain from the path */
+		ZeroMem(Data, sizeof(EFI_FILE_INFO));
+
+		CopyMem(&Info->CreateTime, &Time, sizeof(Time));
+		CopyMem(&Info->LastAccessTime, &Time, sizeof(Time));
+		CopyMem(&Info->ModificationTime, &Time, sizeof(Time));
+
+		Info->Attribute = EFI_FILE_READ_ONLY;
+		if (File->IsDir)
+			Info->Attribute |= EFI_FILE_DIRECTORY;
+
+		CopyMem(Info->FileName, File->BaseName, Size);
+		Info->Size = SIZE_OF_EFI_FILE_INFO + Size;
+		*Len = (INTN)Info->Size;
+		return EFI_SUCCESS;
+
+	} else {
+
+		PrintError(L"'%s': Cannot get information of type %s\n", File->Path, GuidToStr(Type));
+		return EFI_UNSUPPORTED;
+
+	}
 }
 
 /**
