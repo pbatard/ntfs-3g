@@ -1089,7 +1089,7 @@ int ntfs_readdir(ntfs_inode *dir_ni, s64 *pos,
 	INDEX_ROOT *ir;
 	INDEX_ENTRY *ie;
 	INDEX_ALLOCATION *ia = NULL;
-	int rc, ir_pos, bmp_buf_size, bmp_buf_pos, eo;
+	int rc, ir_pos, bmp_buf_size, eo;
 	u32 index_block_size;
 	u8 index_block_size_bits, index_vcn_size_bits;
 
@@ -1284,12 +1284,12 @@ skip_index_root:
 		goto dir_err_out;
 	}
 
-	bmp_buf_size = min(bmp_na->data_size - (bmp_pos >> 3), 4096);
+	bmp_buf_size = min(bmp_na->data_size, 4096);
 	bmp = ntfs_malloc(bmp_buf_size);
 	if (!bmp)
 		goto err_out;
 
-	br = ntfs_attr_pread(bmp_na, bmp_pos >> 3, bmp_buf_size, bmp);
+	br = ntfs_attr_pread(bmp_na, 0, bmp_buf_size, bmp);
 	if (br != bmp_buf_size) {
 		if (br != -1)
 			errno = EIO;
@@ -1297,29 +1297,14 @@ skip_index_root:
 		goto err_out;
 	}
 
-	bmp_buf_pos = 0;
 	/* If the index block is not in use find the next one that is. */
-	while (!(bmp[bmp_buf_pos >> 3] & (1 << (bmp_buf_pos & 7)))) {
+	while (!(bmp[bmp_pos >> 3] & (1 << (bmp_pos & 7)))) {
 find_next_index_buffer:
 		bmp_pos++;
-		bmp_buf_pos++;
 		/* If we have reached the end of the bitmap, we are done. */
 		if (bmp_pos >> 3 >= bmp_na->data_size)
 			goto EOD;
 		ia_pos = bmp_pos << index_block_size_bits;
-		if (bmp_buf_pos >> 3 < bmp_buf_size)
-			continue;
-		/* Read next chunk from the index bitmap. */
-		bmp_buf_pos = 0;
-		if ((bmp_pos >> 3) + bmp_buf_size > bmp_na->data_size)
-			bmp_buf_size = bmp_na->data_size - (bmp_pos >> 3);
-		br = ntfs_attr_pread(bmp_na, bmp_pos >> 3, bmp_buf_size, bmp);
-		if (br != bmp_buf_size) {
-			if (br != -1)
-				errno = EIO;
-			ntfs_log_perror("Failed to read from index bitmap attribute\n");
-			goto err_out;
-		}
 	}
 
 	ntfs_log_debug("Handling index block 0x%llx.\n", (long long)bmp_pos);
