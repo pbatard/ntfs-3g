@@ -40,6 +40,7 @@
 #endif
 
 #define IS_DIR(ni)      (((ntfs_inode*)(ni))->mrec->flags & MFT_RECORD_IS_DIRECTORY)
+#define IS_DIRTY(ni)    (NInoDirty((ntfs_inode*)(ni)) || NInoAttrListDirty((ntfs_inode*)(ni)))
 
 static inline int _to_utf8(CONST CHAR16* Src, char** dst, const char* function)
 {
@@ -289,7 +290,198 @@ NtfsIsVolumeReadOnly(VOID* NtfsVolume)
 }
 
 /*
- * Mount an NTFS volume an initialize the related attributes
+ * Soooooooo.... we have to perform our own caching here, because ntfs-3g
+ * is not designed to handle double open, and the UEFI Shell *DOES* some
+ * weird stuff, such as opening the same file twice, first rw then ro,
+ * while keeping the rw instance opened, as well as other very illogical
+ * things. Which means that, if we just hook these into ntfs_open_inode()
+ * calls, all kind of bad things related to caching are supposed to happen.
+ * Ergo, we need to keep a list of all the files we already have an inode
+ * for, and perform look up to prevent double inode open.
+ */
+
+/* A file lookup entry */
+typedef struct {
+	LIST_ENTRY* ForwardLink;
+	LIST_ENTRY* BackLink;
+	EFI_NTFS_FILE* File;
+} LookupEntry;
+
+/*
+ * Look for an existing file instance in our list, either
+ * by matching a File->Path (if Inum is 0) or the inode
+ * number specified in Inum.
+ * IgnoreSelf can be used if you want to prevent the file
+ * passed as parameter from matching (in case you are using
+ * it with an altered path for instance).
+ * Returns a pointer to the file instance when found, NULL
+ * if not found.
+ */
+static EFI_NTFS_FILE*
+NtfsLookup(EFI_NTFS_FILE* File, UINT64 Inum, BOOLEAN IgnoreSelf)
+{
+	LookupEntry* ListHead = (LookupEntry*)&File->FileSystem->LookupListHead;
+	LookupEntry* Entry;
+	ntfs_inode* ni;
+
+	for (Entry = (LookupEntry*)ListHead->ForwardLink;
+		Entry != ListHead;
+		Entry = (LookupEntry*)Entry->ForwardLink) {
+		FS_ASSERT(Entry->File->NtfsInode != NULL);
+		if (Inum == 0) {
+			/* If IgnoreSelf is active, prevent param from matching */
+			if (IgnoreSelf && Entry->File == File)
+				continue;
+			/* An empty path should return the root */
+			if (File->Path[0] == 0 && Entry->File->IsRoot)
+				return Entry->File;
+			if (StrCmp(File->Path, Entry->File->Path) == 0)
+				return Entry->File;
+		} else {
+			ni = Entry->File->NtfsInode;
+			if (ni->mft_no == GetInodeNumber(Inum))
+				return Entry->File;
+		}
+	}
+	return NULL;
+}
+
+/* Shorthands for the above */
+#define NtfsLookupPath(File, IgnoreSelf) NtfsLookup(File, 0, IgnoreSelf)
+#define NtfsLookupInum(File, Inum) NtfsLookup(File, Inum, FALSE)
+
+/*
+ * Convenience call to look for an open parent file instance
+ */
+static __inline EFI_NTFS_FILE*
+NtfsLookupParent(EFI_NTFS_FILE* File)
+{
+	EFI_NTFS_FILE* Parent;
+
+	/* BaseName always points into a non empty Path */
+	FS_ASSERT(File->BaseName[-1] == PATH_CHAR);
+	File->BaseName[-1] = 0;
+	Parent = NtfsLookupPath(File, TRUE);
+	File->BaseName[-1] = PATH_CHAR;
+	return Parent;
+}
+
+/*
+ * Add a new file instance to the lookup list
+ */
+static VOID
+NtfsLookupAdd(EFI_NTFS_FILE* File)
+{
+	LIST_ENTRY* ListHead = &File->FileSystem->LookupListHead;
+	LookupEntry* Entry = AllocatePool(sizeof(LookupEntry));
+
+	if (Entry) {
+		Entry->File = File;
+		InsertTailList(ListHead, (LIST_ENTRY*)Entry);
+	}
+}
+
+/*
+ * Remove an existing file instance from the lookup list
+ */
+static VOID
+NtfsLookupRem(EFI_NTFS_FILE* File)
+{
+	LookupEntry* ListHead = (LookupEntry*)&File->FileSystem->LookupListHead;
+	LookupEntry* Entry;
+
+	for (Entry = (LookupEntry*)ListHead->ForwardLink;
+		Entry != ListHead;
+		Entry = (LookupEntry*)Entry->ForwardLink) {
+		if (File == Entry->File) {
+			RemoveEntryList((LIST_ENTRY*)Entry);
+			FreePool(Entry);
+			return;
+		}
+	}
+}
+
+/*
+ * Clear the lookup list and free all allocated resources
+ */
+static VOID
+NtfsLookupFree(LIST_ENTRY* List)
+{
+	LookupEntry *ListHead = (LookupEntry*)List, *Entry;
+
+	for (Entry = (LookupEntry*)ListHead->ForwardLink;
+		Entry != ListHead;
+		Entry = (LookupEntry*)Entry->ForwardLink) {
+		RemoveEntryList((LIST_ENTRY*)Entry);
+		FreePool(Entry);
+	}
+}
+
+/*
+ * Wrapper for ntfs_pathname_to_inode()
+ *
+ * Unlike what FUSE does, we really can't use ntfs_pathname_to_inode()
+ * with a NULL dir_ni in UEFI because we always run into a situation
+ * where inodes between the inode we want and root are still open and
+ * ntfs-3g is (officially) very averse to reopening any inode, ever,
+ * which it would end up doing internally during directory traversal.
+ *
+ * So we must make sure that there aren't any inodes open between our
+ * target and the directory we start the path search with, by going
+ * down our path until we either end up with a directory instance that
+ * we already have open, or root.
+ *
+ * It should be pointed out that there is no guarantee that an open
+ * root instance exists while performing this search, as the UEFI
+ * Shell is wont to close root before it closes other files.
+ */
+static ntfs_inode*
+NtfsOpenInodeFromPath(EFI_FS* FileSystem, CONST CHAR16* Path)
+{
+	EFI_NTFS_FILE* Parent = NULL, File = { 0 };
+	char* path = NULL;
+	ntfs_inode* ni = NULL;
+	INTN Len = SafeStrLen(Path);
+	CHAR16* TmpPath = NULL;
+	int sz;
+
+	/* Special case for root */
+	if (Path[0] == 0 || (Path[0] == PATH_CHAR && Path[1] == 0))
+		return ntfs_inode_open(FileSystem->NtfsVolume, FILE_root);
+
+	TmpPath = StrDup(Path);
+	if (TmpPath == NULL)
+		return NULL;
+
+	FS_ASSERT(TmpPath[0] == PATH_CHAR);
+	FS_ASSERT(TmpPath[1] != 0);
+
+	/* Create a mininum file we can use for lookup */
+	File.Path = TmpPath;
+	File.FileSystem = FileSystem;
+
+	/* Go down the path to find the closest open directory */
+	while (Parent == NULL && Len > 0) {
+		while (TmpPath[--Len] != PATH_CHAR);
+		TmpPath[Len] = 0;
+		Parent = NtfsLookupPath(&File, FALSE);
+		TmpPath[Len] = PATH_CHAR;
+	}
+
+	/* Convert the remainer of the path to relative from Parent */
+	sz = to_utf8(&TmpPath[Len + 1], &path);
+	FreePool(TmpPath);
+	if (sz < 0)
+		return NULL;
+
+	/* An empty path below is fine and will return the root inode */
+	ni = ntfs_pathname_to_inode(FileSystem->NtfsVolume, Parent ? Parent->NtfsInode : NULL, path);
+	free(path);
+	return ni;
+}
+
+/*
+ * Mount an NTFS volume an initilize the related attributes
  */
 EFI_STATUS
 NtfsMountVolume(EFI_FS* FileSystem)
@@ -312,6 +504,9 @@ NtfsMountVolume(EFI_FS* FileSystem)
 
 	/* Insert this filesystem in our list so that ntfs_mount() can locate it */
 	InsertTailList(&FsListHead, (LIST_ENTRY*)FileSystem);
+
+	/* Initialize the Lookup List for this volume */
+	InitializeListHead(&FileSystem->LookupListHead);
 
 	ntfs_log_set_handler(ntfs_log_handler_uefi);
 
@@ -364,6 +559,7 @@ NtfsUnmountVolume(EFI_FS* FileSystem)
 	ntfs_umount(FileSystem->NtfsVolume, FALSE);
 
 	PrintInfo(L"Unmounted volume '%s'\n", FileSystem->NtfsVolumeLabel);
+	NtfsLookupFree(&FileSystem->LookupListHead);
 	free(FileSystem->NtfsVolumeLabel);
 	FileSystem->NtfsVolumeLabel = NULL;
 	FileSystem->MountCount = 0;
@@ -437,32 +633,33 @@ NtfsFreeFile(EFI_NTFS_FILE* File)
 }
 
 /*
- * Open a file instance
+ * Open or reopen a file instance
  */
 EFI_STATUS
-NtfsOpenFile(EFI_NTFS_FILE* File)
+NtfsOpenFile(EFI_NTFS_FILE** FilePointer)
 {
-	char* path = NULL;
-	int sz;
+	EFI_NTFS_FILE* File;
 
-	if (File->Path[0] == PATH_CHAR && File->Path[1] == 0) {
-		/* Root directory */
-		File->NtfsInode = ntfs_inode_open(File->FileSystem->NtfsVolume, FILE_root);
-		File->IsRoot = TRUE;
-	} else {
-		sz = ntfs_ucstombs(File->Path, SafeStrLen(File->Path), &path, 0);
-		if (sz <= 0) {
-			PrintError(L"%a failed to convert '%s': %a\n",
-				__FUNCTION__, File->Path, strerror(errno));
-			return ErrnoToEfiStatus();
-		}
-		File->NtfsInode = ntfs_pathname_to_inode(File->FileSystem->NtfsVolume, NULL, path);
-		free(path);
+	/* See if we already have a file instance open. */
+	File = NtfsLookupPath(*FilePointer, FALSE);
+
+	if (File != NULL) {
+		/* Existing file instance found => Use that one */
+		NtfsFreeFile(*FilePointer);
+		*FilePointer = File;
+		return EFI_SUCCESS;
 	}
-	if (File->NtfsInode == NULL)
-		return EFI_NOT_FOUND;
 
+	/* Existing file instance was not found */
+	File = *FilePointer;
+	File->IsRoot = (File->Path[0] == PATH_CHAR && File->Path[1] == 0);
+	File->NtfsInode = NtfsOpenInodeFromPath(File->FileSystem, File->Path);
+	if (File->NtfsInode == NULL)
+		return ErrnoToEfiStatus();
 	File->IsDir = IS_DIR(File->NtfsInode);
+
+	/* Add the new entry */
+	NtfsLookupAdd(File);
 
 	return EFI_SUCCESS;
 }
@@ -473,9 +670,36 @@ NtfsOpenFile(EFI_NTFS_FILE* File)
 VOID
 NtfsCloseFile(EFI_NTFS_FILE* File)
 {
+	EFI_NTFS_FILE* Parent = NULL;
+	u64 parent_inum = 0;
+
 	if (File == NULL || File->NtfsInode == NULL)
 		return;
+	/*
+	 * If the inode is dirty, ntfs_inode_close() will issue an
+	 * ntfs_inode_sync() which may try to open the parent inode.
+	 * Therefore, since ntfs-3g is not keen on reopen, if we do
+	 * have the parent inode open, we need to close it first.
+	 * Of course, the big question becomes: "But what if that
+	 * parent's parent is also open and dirty?", which we assert
+	 * it isn't...
+	 */
+	if (IS_DIRTY(File->NtfsInode)) {
+		Parent = NtfsLookupParent(File);
+		if (Parent != NULL) {
+			parent_inum = ((ntfs_inode*)Parent->NtfsInode)->mft_no;
+			ntfs_inode_close(Parent->NtfsInode);
+		}
+	}
 	ntfs_inode_close(File->NtfsInode);
+	if (Parent != NULL) {
+		Parent->NtfsInode = ntfs_inode_open(File->FileSystem->NtfsVolume, parent_inum);
+		if (Parent->NtfsInode == NULL) {
+			PrintError(L"%a: Failed to reopen Parent: %a\n", __FUNCTION__, strerror(errno));
+			NtfsLookupRem(Parent);
+		}
+	}
+	NtfsLookupRem(File);
 }
 
 /*
@@ -565,6 +789,7 @@ EFI_STATUS
 NtfsGetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info, CONST UINT64 MRef, BOOLEAN IsDir)
 {
 	BOOLEAN NeedClose = FALSE;
+	EFI_NTFS_FILE* Existing = NULL;
 	ntfs_inode* ni = File->NtfsInode;
 
 	/*
@@ -572,8 +797,13 @@ NtfsGetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info, CONST UINT64 MRef, BOO
 	 * to open (and later close) the inode.
 	 */
 	if (MRef != 0) {
-		ni = ntfs_inode_open(File->FileSystem->NtfsVolume, MRef);
-		NeedClose = TRUE;
+		Existing = NtfsLookupInum(File, MRef);
+		if (Existing != NULL) {
+			ni = Existing->NtfsInode;
+		} else {
+			ni = ntfs_inode_open(File->FileSystem->NtfsVolume, MRef);
+			NeedClose = TRUE;
+		}
 	} else
 		PrintExtra(L"NtfsGetInfo for inode: %lld\n", ni->mft_no);
 

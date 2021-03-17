@@ -128,7 +128,8 @@ FileOpen(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
 	}
 	NewFile->BaseName = &NewFile->Path[i + 1];
 
-	Status = NtfsOpenFile(NewFile);
+	/* NB: The call below may update NewFile to an existing open instance */
+	Status = NtfsOpenFile(&NewFile);
 	if (EFI_ERROR(Status)) {
 		if (Status != EFI_NOT_FOUND)
 			PrintStatusError(Status, L"Could not open file '%s'", Name);
@@ -653,7 +654,7 @@ FileOpenVolume(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* This, EFI_FILE_HANDLE* Root)
 	RootFile->BaseName = &RootFile->Path[1];
 
 	/* Open the root file */
-	Status = NtfsOpenFile(RootFile);
+	Status = NtfsOpenFile(&RootFile);
 	if (EFI_ERROR(Status)) {
 		PrintStatusError(Status, L"Could not open root file");
 		goto out;
