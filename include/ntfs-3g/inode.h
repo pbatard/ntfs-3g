@@ -219,7 +219,11 @@ extern int ntfs_inode_set_times(ntfs_inode *ni, const char *value,
 			size_t size, int flags);
 
 /* debugging */
-#define debug_double_inode(num, type)
+#ifdef DEBUG_DOUBLE_INODE
+extern void debug_double_inode(u64 inum, int add);
+#else
+#define debug_double_inode(inum, add)
+#endif
 #define debug_cached_inode(ni)
 
 #endif /* defined _NTFS_INODE_H */

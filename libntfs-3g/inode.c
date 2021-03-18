@@ -452,6 +452,50 @@ void ntfs_inode_invalidate(ntfs_volume *vol, const MFT_REF mref)
 
 #endif
 
+#ifdef DEBUG_DOUBLE_INODE
+
+/* Max number of inodes tracked for debugging */
+#define DEBUG_TABLE_SIZE 256
+
+/*
+ *		Keep track of inodes that are opened/closed.
+ *	Open/close should be balanced and an inode should not
+ *	be opened twice if it is being cached.
+ */
+void debug_double_inode(u64 inum, int add)
+{
+	static u64 table[DEBUG_TABLE_SIZE] = { 0 };
+	int i;
+
+	/* System files are protected from being cached */
+	if (inum <= 11)
+		return;
+	if (add) {
+		for (i = 0; i < DEBUG_TABLE_SIZE && table[i] != inum; i++);
+		if (i < DEBUG_TABLE_SIZE) {
+			ntfs_log_critical("%s: Illegal double open for inode %lld!\n", __FUNCTION__, inum);
+			while (1);
+		}
+		for (i = 0; i < DEBUG_TABLE_SIZE && table[i] != 0; i++);
+		if (i >= DEBUG_TABLE_SIZE) {
+			ntfs_log_critical("%s: DEBUG_TABLE_SIZE is too small!\n", __FUNCTION__);
+			while (1);
+		}
+		ntfs_log_trace("%s: Added inode %lld\n", __FUNCTION__, inum);
+		table[i] = inum;
+	} else {
+		for (i = 0; i < DEBUG_TABLE_SIZE && table[i] != inum; i++);
+		if (i >= DEBUG_TABLE_SIZE) {
+			ntfs_log_critical("%s: Unbalanced close for inode %lld!\n", __FUNCTION__, inum);
+			while (1);
+		}
+		ntfs_log_trace("%s: Removed inode %lld\n", __FUNCTION__, inum);
+		table[i] = 0;
+	}
+}
+
+#endif /* DEBUG_DOUBLE_INODE */
+
 /*
  *		Open an inode
  *
@@ -471,7 +515,7 @@ ntfs_inode *ntfs_inode_open(ntfs_volume *vol, const MFT_REF mref)
 
 		/* fetch idata from cache */
 	item.inum = MREF(mref);
-	debug_double_inode(item.inum,1);
+	debug_double_inode(item.inum, 1);
 	item.pathname = (const char*)NULL;
 	item.varsize = 0;
 	cached = (struct CACHED_NIDATA*)ntfs_fetch_cache(vol->nidata_cache,
@@ -511,7 +555,7 @@ int ntfs_inode_close(ntfs_inode *ni)
 	struct CACHED_NIDATA item;
 
 	if (ni) {
-		debug_double_inode(ni->mft_no,0);
+		debug_double_inode(ni->mft_no, 0);
 		/* do not cache system files : could lead to double entries */
 		if (ni->vol && ni->vol->nidata_cache
 			&& ((ni->mft_no == FILE_root)

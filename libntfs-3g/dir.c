@@ -1479,6 +1479,7 @@ static ntfs_inode *__ntfs_create(ntfs_inode *dir_ni, le32 securid,
 	if (!ni)
 		return NULL;
 #if CACHE_NIDATA_SIZE
+	debug_double_inode(ni->mft_no, 1);
 	ntfs_inode_invalidate(dir_ni->vol, ni->mft_no);
 #endif
 	special_files = dir_ni->vol->special_files;	
@@ -2134,6 +2135,7 @@ search:
 	free(ni->extent_nis);
 	ni->nr_extents = 0;
 	ni->extent_nis = (ntfs_inode**)NULL;
+	debug_double_inode(ni->mft_no, 0);
 #else
 	while (ni->nr_extents)
 		if (ntfs_mft_record_free(ni->vol, *(ni->extent_nis))) {
@@ -2142,7 +2144,6 @@ search:
 					"Leaving inconsistent metadata.\n");
 		}
 #endif
-	debug_double_inode(ni->mft_no,0);
 	if (ntfs_mft_record_free(ni->vol, ni)) {
 		err = errno;
 		ntfs_log_error("Failed to free base MFT record.  "
