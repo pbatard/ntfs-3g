@@ -766,6 +766,9 @@ NtfsReadFile(EFI_NTFS_FILE* File, VOID* Data, UINTN* Len)
 
 	ntfs_attr_close(na);
 
+	if (!NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume))
+		ntfs_inode_update_times(File->NtfsInode, NTFS_UPDATE_MCTIME);
+
 	return EFI_SUCCESS;
 }
 
@@ -833,3 +836,412 @@ NtfsGetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info, CONST UINT64 MRef, BOO
 
 	return EFI_SUCCESS;
 }
+
+/*
+ * For extra safety, as well as in an effort to reduce the size of the
+ * read-only driver executable, guard all the function calls that alter
+ * volume data.
+ */
+
+#ifdef FORCE_READONLY
+
+EFI_STATUS
+NtfsCreateFile(EFI_NTFS_FILE** FilePointer)
+{
+	return EFI_WRITE_PROTECTED;
+}
+
+EFI_STATUS
+NtfsDeleteFile(EFI_NTFS_FILE* File)
+{
+	return EFI_WRITE_PROTECTED;
+}
+
+EFI_STATUS
+NtfsWriteFile(EFI_NTFS_FILE* File, VOID* Data, UINTN* Len)
+{
+	return EFI_WRITE_PROTECTED;
+}
+
+EFI_STATUS
+NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info)
+{
+	return EFI_WRITE_PROTECTED;
+}
+
+EFI_STATUS
+NtfsFlushFile(EFI_NTFS_FILE* File)
+{
+	return EFI_SUCCESS;
+}
+
+EFI_STATUS
+NtfsRenameVolume(VOID* NtfsVolume, CONST CHAR16* Label, CONST INTN Len)
+{
+	return EFI_WRITE_PROTECTED;
+}
+
+#else /* FORCE_READONLY */
+
+/*
+ * Create new file or reopen an existing one
+ */
+EFI_STATUS
+NtfsCreateFile(EFI_NTFS_FILE** FilePointer)
+{
+	EFI_STATUS Status;
+	EFI_NTFS_FILE *File, *Parent = NULL;
+	char* basename = NULL;
+	ntfs_inode *dir_ni = NULL, *ni = NULL;
+	int sz;
+
+	/* If an existing open file instance is found, use that one */
+	File = NtfsLookupPath(*FilePointer, FALSE);
+	if (File != NULL) {
+		/* Entries must be of the same type */
+		if (File->IsDir != (*FilePointer)->IsDir)
+			return EFI_ACCESS_DENIED;
+		NtfsFreeFile(*FilePointer);
+		*FilePointer = File;
+		return EFI_SUCCESS;
+	}
+
+	/* No open instance for this inode => Open the parent inode */
+	File = *FilePointer;
+
+	/* Validate BaseName */
+	if (ntfs_forbidden_names(File->FileSystem->NtfsVolume,
+		File->BaseName, SafeStrLen(File->BaseName), TRUE)) {
+		return EFI_INVALID_PARAMETER;
+	}
+
+	Parent = NtfsLookupParent(File);
+
+	/* If the lookup failed, then the parent dir is not already open */
+	if (Parent == NULL) {
+		/* Isolate dirname and get the inode */
+		FS_ASSERT(File->BaseName[-1] == PATH_CHAR);
+		File->BaseName[-1] = 0;
+		dir_ni = NtfsOpenInodeFromPath(File->FileSystem, File->Path);
+		File->BaseName[-1] = PATH_CHAR;
+	} else
+		dir_ni = Parent->NtfsInode;
+
+	if (dir_ni == NULL) {
+		Status = ErrnoToEfiStatus();
+		goto out;
+	}
+
+	/* Similar to FUSE: Deny creating into $Extend */
+	if (dir_ni->mft_no == FILE_Extend) {
+		Status = EFI_ACCESS_DENIED;
+		goto out;
+	}
+
+	/* Find if the inode we are trying to create already exists */
+	sz = to_utf8(File->BaseName, &basename);
+	if (sz <= 0) {
+		Status = ErrnoToEfiStatus();
+		goto out;
+	}
+	/* We can safely call ntfs_pathname_to_inode since the inode is not open */
+	ni = ntfs_pathname_to_inode(File->FileSystem->NtfsVolume, dir_ni, basename);
+	if (ni != NULL) {
+		/* Entries must be of the same type */
+		if ((File->IsDir && !IS_DIR(ni)) || (!File->IsDir && IS_DIR(ni))) {
+			Status = EFI_ACCESS_DENIED;
+			goto out;
+		}
+	} else {
+		/* Create the new file or directory */
+		ni = ntfs_create(dir_ni, 0, File->BaseName,
+			SafeStrLen(File->BaseName), File->IsDir ? S_IFDIR : S_IFREG);
+		if (ni == NULL) {
+			Status = ErrnoToEfiStatus();
+			goto out;
+		}
+		/* Windows and FUSE set this flag by default */
+		if (!File->IsDir)
+			ni->flags |= FILE_ATTR_ARCHIVE;
+	}
+
+	/* Update cache lookup record */
+	ntfs_inode_update_mbsname(dir_ni, basename, ni->mft_no);
+	ntfs_inode_update_times(ni, NTFS_UPDATE_MCTIME);
+
+	File->NtfsInode = ni;
+	NtfsLookupAdd(File);
+	Status = EFI_SUCCESS;
+
+out:
+	free(basename);
+	/* NB: ntfs_inode_close(NULL) is fine */
+	if (Parent == NULL)
+		ntfs_inode_close(dir_ni);
+	if EFI_ERROR(Status) {
+		ntfs_inode_close(ni);
+		File->NtfsInode = NULL;
+	}
+	return Status;
+}
+
+/*
+ * Delete a file or directory from the volume
+ *
+ * Like FileDelete(), this call should only
+ * return EFI_WARN_DELETE_FAILURE on error.
+ */
+EFI_STATUS
+NtfsDeleteFile(EFI_NTFS_FILE* File)
+{
+	EFI_NTFS_FILE *Parent = NULL, *GrandParent = NULL;
+	ntfs_inode* dir_ni;
+	u64 parent_inum, grandparent_inum;
+	int r;
+
+	Parent = NtfsLookupParent(File);
+
+	/* If the lookup failed, then the parent dir is not already open */
+	if (Parent == NULL) {
+		/* Isolate dirname and get the inode */
+		FS_ASSERT(File->BaseName[-1] == PATH_CHAR);
+		File->BaseName[-1] = 0;
+		dir_ni = NtfsOpenInodeFromPath(File->FileSystem, File->Path);
+		File->BaseName[-1] = PATH_CHAR;
+		/* TODO: We may need to open the grandparent here too... */
+		if (dir_ni == NULL)
+			return ErrnoToEfiStatus();
+	} else {
+		/*
+		 * ntfs-3g may attempt to reopen the file's grandparent, since it
+		 * issue ntfs_inode_close on dir_ni which, when dir_ni is dirty,
+		 * ultimately results in ntfs_inode_sync_file_name(dir_ni, NULL)
+		 * which calls ntfs_inode_open(le64_to_cpu(fn->parent_directory))
+		 * So we must make sure the grandparent's inode is closed...
+		 */
+		GrandParent = NtfsLookupParent(Parent);
+		if (GrandParent != NULL) {
+			if (GrandParent->IsRoot) {
+				GrandParent = NULL;
+			} else {
+				grandparent_inum = ((ntfs_inode*)GrandParent->NtfsInode)->mft_no;
+				ntfs_inode_close(GrandParent->NtfsInode);
+			}
+		}
+
+		/* Parent dir was already open */
+		dir_ni = Parent->NtfsInode;
+		parent_inum = dir_ni->mft_no;
+	}
+
+	/* Similar to FUSE: Deny deleting from $Extend */
+	if (dir_ni->mft_no == FILE_Extend)
+		return EFI_ACCESS_DENIED;
+
+	/* Delete the file */
+	r = ntfs_delete(File->FileSystem->NtfsVolume, NULL, File->NtfsInode,
+		dir_ni, File->BaseName, SafeStrLen(File->BaseName));
+	NtfsLookupRem(File);
+	if (r < 0) {
+		PrintError(L"%a failed: %a\n", __FUNCTION__, strerror(errno));
+		return EFI_WARN_DELETE_FAILURE;
+	}
+	File->NtfsInode = NULL;
+
+	/* Reopen Parent or GrandParent if they were closed */
+	if (Parent != NULL) {
+		Parent->NtfsInode = ntfs_inode_open(File->FileSystem->NtfsVolume, parent_inum);
+		if (Parent->NtfsInode == NULL) {
+			PrintError(L"%a: Failed to reopen Parent: %a\n", __FUNCTION__, strerror(errno));
+			NtfsLookupRem(Parent);
+			return ErrnoToEfiStatus();
+		}
+	}
+	if (GrandParent != NULL) {
+		GrandParent->NtfsInode = ntfs_inode_open(File->FileSystem->NtfsVolume, grandparent_inum);
+		if (GrandParent->NtfsInode == NULL) {
+			PrintError(L"%a: Failed to reopen GrandParent: %a\n", __FUNCTION__, strerror(errno));
+			NtfsLookupRem(GrandParent);
+			return ErrnoToEfiStatus();
+		}
+	}
+
+	return EFI_SUCCESS;
+}
+
+/*
+ * Write from a data buffer into an open file
+ */
+EFI_STATUS
+NtfsWriteFile(EFI_NTFS_FILE* File, VOID* Data, UINTN* Len)
+{
+	ntfs_inode* ni = File->NtfsInode;
+	ntfs_attr* na = NULL;
+	s64 size = *Len;
+
+	*Len = 0;
+
+	if (ni->flags & FILE_ATTR_READONLY)
+		return EFI_WRITE_PROTECTED;
+
+	na = ntfs_attr_open(File->NtfsInode, AT_DATA, AT_UNNAMED, 0);
+	if (!na) {
+		PrintError(L"%a failed (open): %a\n", __FUNCTION__, strerror(errno));
+		return ErrnoToEfiStatus();
+	}
+
+	while (size > 0) {
+		s64 ret = ntfs_attr_pwrite(na, File->Offset, size, &((UINT8*)Data)[*Len]);
+		if (ret <= 0) {
+			ntfs_attr_close(na);
+			if (ret >= 0)
+				errno = EIO;
+			PrintError(L"%a failed (write): %a\n", __FUNCTION__, strerror(errno));
+			return ErrnoToEfiStatus();
+		}
+		size -= ret;
+		File->Offset += ret;
+		*Len += ret;
+	}
+
+	ntfs_attr_close(na);
+
+	ntfs_inode_update_times(File->NtfsInode, NTFS_UPDATE_MCTIME);
+
+	return EFI_SUCCESS;
+}
+
+/*
+ * Update NTFS inode data with the attributes from an EFI_FILE_INFO struct.
+ */
+EFI_STATUS
+NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info)
+{
+	CONST EFI_TIME ZeroTime = { 0 };
+	CHAR16* Path, * c;
+	ntfs_inode* ni = File->NtfsInode;
+	ntfs_attr* na;
+	int r;
+
+	PrintExtra(L"NtfsSetInfo for inode: %lld\n", ni->mft_no);
+
+	/* Per UEFI specs, trying to change type should return access denied */
+	if ((!IS_DIR(ni) && (Info->Attribute & EFI_FILE_DIRECTORY)) ||
+		(IS_DIR(ni) && !(Info->Attribute & EFI_FILE_DIRECTORY)))
+		return EFI_ACCESS_DENIED;
+
+	/* If we get an absolute path, we might be moving the file */
+	if (IS_PATH_DELIMITER(Info->FileName[0])) {
+		/* Need to convert the path separators */
+		Path = StrDup(Info->FileName);
+		if (Path == NULL)
+			return EFI_OUT_OF_RESOURCES;
+		for (c = Path; *c; c++) {
+			if (*c == DOS_PATH_CHAR)
+				*c = PATH_CHAR;
+		}
+		CleanPath(Path);
+		if (StrCmp(Path, File->Path)) {
+			/* TODO: Add move support */
+			return EFI_UNSUPPORTED;
+		}
+	}
+
+	/* NtfsMoveFile() may have altered File->NtfsInode */
+	ni = File->NtfsInode;
+
+	if (!IS_DIR(ni) && (Info->FileSize != ni->data_size)) {
+		na = ntfs_attr_open(ni, AT_DATA, AT_UNNAMED, 0);
+		if (!na) {
+			PrintError(L"%a ntfs_attr_open failed: %a\n", __FUNCTION__, strerror(errno));
+			return ErrnoToEfiStatus();
+		}
+		r = ntfs_attr_truncate(na, Info->FileSize);
+		ntfs_attr_close(na);
+		if (r) {
+			PrintError(L"%a ntfs_attr_truncate failed: %a\n", __FUNCTION__, strerror(errno));
+			return ErrnoToEfiStatus();
+		}
+	}
+
+	/*
+	 * Per UEFI specs: "A value of zero in CreateTime, LastAccess,
+	 * or ModificationTime causes the fields to be ignored".
+	 */
+	if (CompareMem(&Info->CreateTime, &ZeroTime, sizeof(EFI_TIME)) != 0)
+		ni->creation_time = UNIX_TO_NTFS_TIME(EfiTimeToUnixTime(&Info->CreateTime));
+	if (CompareMem(&Info->LastAccessTime, &ZeroTime, sizeof(EFI_TIME)) != 0)
+		ni->last_access_time = UNIX_TO_NTFS_TIME(EfiTimeToUnixTime(&Info->LastAccessTime));
+	if (CompareMem(&Info->ModificationTime, &ZeroTime, sizeof(EFI_TIME)) != 0)
+		ni->last_data_change_time = UNIX_TO_NTFS_TIME(EfiTimeToUnixTime(&Info->ModificationTime));
+
+	ni->flags &= ~(FILE_ATTR_READONLY | FILE_ATTR_HIDDEN | FILE_ATTR_SYSTEM | FILE_ATTR_ARCHIVE);
+	if (Info->Attribute & EFI_FILE_READ_ONLY)
+		ni->flags |= FILE_ATTR_READONLY;
+	if (Info->Attribute & EFI_FILE_HIDDEN)
+		ni->flags |= FILE_ATTR_HIDDEN;
+	if (Info->Attribute & EFI_FILE_SYSTEM)
+		ni->flags |= FILE_ATTR_SYSTEM;
+	if (Info->Attribute & EFI_FILE_ARCHIVE)
+		ni->flags |= FILE_ATTR_ARCHIVE;
+
+	/* No sync, since, per UEFI specs, change of attributes apply on close */
+	return EFI_SUCCESS;
+}
+
+/*
+ * Flush the current file
+ */
+EFI_STATUS
+NtfsFlushFile(EFI_NTFS_FILE* File)
+{
+	EFI_STATUS Status = EFI_SUCCESS;
+	EFI_NTFS_FILE* Parent = NULL;
+	ntfs_inode* ni;
+	u64 parent_inum;
+
+	ni = File->NtfsInode;
+	/* Nothing to do if the file is not dirty */
+	if (!NInoDirty(ni) && NInoAttrListDirty(ni))
+		return EFI_SUCCESS;
+
+	/*
+	 * Same story as with NtfsCloseFile, with the parent
+	 * inode needing to be closed to be able to issue sync()
+	 */
+	Parent = NtfsLookupParent(File);
+	if (Parent != NULL) {
+		parent_inum = ((ntfs_inode*)Parent->NtfsInode)->mft_no;
+		ntfs_inode_close(Parent->NtfsInode);
+	}
+	if (ntfs_inode_sync(File->NtfsInode) < 0) {
+		PrintError(L"%a failed: %a\n", __FUNCTION__, strerror(errno));
+		Status = ErrnoToEfiStatus();
+	}
+	if (Parent != NULL) {
+		Parent->NtfsInode = ntfs_inode_open(File->FileSystem->NtfsVolume, parent_inum);
+		if (Parent->NtfsInode == NULL) {
+			PrintError(L"%a: Failed to reopen Parent: %a\n", __FUNCTION__, strerror(errno));
+			NtfsLookupRem(Parent);
+		}
+	}
+	return Status;
+}
+
+/*
+ * Change the volume label.
+ * Len is the length of the label, including terminating NUL character.
+ */
+EFI_STATUS
+NtfsRenameVolume(VOID* NtfsVolume, CONST CHAR16* Label, CONST INTN Len)
+{
+	if (NtfsIsVolumeReadOnly(NtfsVolume))
+		return EFI_WRITE_PROTECTED;
+	if (ntfs_volume_rename(NtfsVolume, Label, (int)Len) < 0) {
+		PrintError(L"%a failed: %a\n", __FUNCTION__, strerror(errno));
+		return ErrnoToEfiStatus();
+	}
+	return EFI_SUCCESS;
+}
+
+#endif /* FORCE_READONLY */
