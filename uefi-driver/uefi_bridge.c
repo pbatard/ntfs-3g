@@ -597,21 +597,23 @@ NtfsAllocateFile(EFI_NTFS_FILE** File, EFI_FS* FileSystem)
 
 	/* Initialize the attributes */
 	NewFile->FileSystem = FileSystem;
-	NewFile->EfiFile.Revision = EFI_FILE_PROTOCOL_REVISION2;
-	NewFile->EfiFile.Open = FileOpen;
-	NewFile->EfiFile.Close = FileClose;
-	NewFile->EfiFile.Delete = FileDelete;
-	NewFile->EfiFile.Read = FileRead;
-	NewFile->EfiFile.Write = FileWrite;
-	NewFile->EfiFile.GetPosition = FileGetPosition;
-	NewFile->EfiFile.SetPosition = FileSetPosition;
-	NewFile->EfiFile.GetInfo = FileGetInfo;
-	NewFile->EfiFile.SetInfo = FileSetInfo;
-	NewFile->EfiFile.Flush = FileFlush;
-	NewFile->EfiFile.OpenEx = FileOpenEx;
-	NewFile->EfiFile.ReadEx = FileReadEx;
-	NewFile->EfiFile.WriteEx = FileWriteEx;
-	NewFile->EfiFile.FlushEx = FileFlushEx;
+	NewFile->EfiFileRW.Revision = EFI_FILE_PROTOCOL_REVISION2;
+	NewFile->EfiFileRW.Open = FileOpen;
+	NewFile->EfiFileRW.Close = FileClose;
+	NewFile->EfiFileRW.Delete = FileDelete;
+	NewFile->EfiFileRW.Read = FileRead;
+	NewFile->EfiFileRW.Write = FileWrite;
+	NewFile->EfiFileRW.GetPosition = FileGetPosition;
+	NewFile->EfiFileRW.SetPosition = FileSetPosition;
+	NewFile->EfiFileRW.GetInfo = FileGetInfo;
+	NewFile->EfiFileRW.SetInfo = FileSetInfo;
+	NewFile->EfiFileRW.Flush = FileFlush;
+	NewFile->EfiFileRW.OpenEx = FileOpenEx;
+	NewFile->EfiFileRW.ReadEx = FileReadEx;
+	NewFile->EfiFileRW.WriteEx = FileWriteEx;
+	NewFile->EfiFileRW.FlushEx = FileFlushEx;
+	CopyMem(&NewFile->EfiFileRO, &NewFile->EfiFileRW, sizeof(EFI_FILE));
+	NewFile->MarkerRO = (UINTN)-1;
 
 	*File = NewFile;
 	return EFI_SUCCESS;
@@ -864,7 +866,7 @@ NtfsWriteFile(EFI_NTFS_FILE* File, VOID* Data, UINTN* Len)
 }
 
 EFI_STATUS
-NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info)
+NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info, BOOLEAN ReadOnly)
 {
 	return EFI_WRITE_PROTECTED;
 }
@@ -1284,7 +1286,7 @@ out:
  * Update NTFS inode data with the attributes from an EFI_FILE_INFO struct.
  */
 EFI_STATUS
-NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info)
+NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info, BOOLEAN ReadOnly)
 {
 	CONST EFI_TIME ZeroTime = { 0 };
 	EFI_STATUS Status;
@@ -1300,6 +1302,18 @@ NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info)
 		(IS_DIR(ni) && !(Info->Attribute & EFI_FILE_DIRECTORY)))
 		return EFI_ACCESS_DENIED;
 
+	/*
+	 * Per specs: If the file was opened read-only and an attempt is being
+	 * made to modify a field other than Attribute, return EFI_ACCESS_DENIED.
+	 */
+	if (ReadOnly) {
+		/* We check for the filename and size change conditions below */
+		if ((CompareMem(&Info->CreateTime, &ZeroTime, sizeof(EFI_TIME)) != 0) ||
+			(CompareMem(&Info->LastAccessTime, &ZeroTime, sizeof(EFI_TIME)) != 0) ||
+			(CompareMem(&Info->ModificationTime, &ZeroTime, sizeof(EFI_TIME)) != 0))
+			return EFI_ACCESS_DENIED;
+	}
+
 	/* If we get an absolute path, we might be moving the file */
 	if (IS_PATH_DELIMITER(Info->FileName[0])) {
 		/* Need to convert the path separators */
@@ -1312,6 +1326,9 @@ NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info)
 		}
 		CleanPath(Path);
 		if (StrCmp(Path, File->Path)) {
+			/* Non attribute change of read-only file */
+			if (ReadOnly)
+				return EFI_ACCESS_DENIED;
 			Status = NtfsMoveFile(File, Path);
 			if (EFI_ERROR(Status))
 				return Status;
@@ -1322,6 +1339,9 @@ NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info)
 	ni = File->NtfsInode;
 
 	if (!IS_DIR(ni) && (Info->FileSize != ni->data_size)) {
+		/* Non attribute change of read-only file */
+		if (ReadOnly)
+			return EFI_ACCESS_DENIED;
 		na = ntfs_attr_open(ni, AT_DATA, AT_UNNAMED, 0);
 		if (!na) {
 			PrintError(L"%a ntfs_attr_open failed: %a\n", __FUNCTION__, strerror(errno));
