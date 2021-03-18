@@ -49,8 +49,8 @@ FileOpen(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
 	CHAR16* Path = NULL;
 	INTN i, Len;
 
-	PrintInfo(L"Open(" PERCENT_P L"%s, \"%s\")\n", (UINTN)This,
-		File->IsRoot ? L" <ROOT>" : L"", Name);
+	PrintInfo(L"Open(" PERCENT_P L"%s, \"%s\", Mode %llx)\n", (UINTN)This,
+		File->IsRoot ? L" <ROOT>" : L"", Name, Mode);
 
 	if (NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume) && (Mode != EFI_FILE_MODE_READ)) {
 		PrintInfo(L"Invalid mode for read-only media\n", Name);
@@ -67,7 +67,26 @@ FileOpen(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
 		return EFI_NOT_FOUND;
 	}
 
-	/* See if we're trying to reopen current (which the EFI Shell insists on doing) */
+	/*
+	 * Per UEFI specs: "The only valid combinations that a file may
+	 * be opened with are: Read, Read/Write, or Create/Read/Write."
+	 */
+	switch (Mode) {
+	case (EFI_FILE_MODE_READ):
+	case (EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE):
+	case (EFI_FILE_MODE_CREATE | EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE):
+		break;
+	default:
+		return EFI_INVALID_PARAMETER;
+	}
+
+	/* Prevent the creation of files named '', '.' or '..' */
+	if ((Mode & EFI_FILE_MODE_CREATE) && (
+		(*Name == 0) || (StrCmp(Name, L".") == 0) ||
+		(StrCmp(Name, L"..") == 0)))
+		return EFI_ACCESS_DENIED;
+
+	/* See if we're trying to reopen current (which the Shell insists on doing) */
 	if ((*Name == 0) || (StrCmp(Name, L".") == 0)) {
 		PrintInfo(L"  Reopening %s\n", File->IsRoot ? L"<ROOT>" : File->Path);
 		File->RefCount++;
@@ -117,6 +136,12 @@ FileOpen(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
 		goto out;
 	}
 
+	/* Extra check to see if we're trying to create root */
+	if (Path[0] == PATH_CHAR && Path[1] == 0 && (Mode & EFI_FILE_MODE_CREATE)) {
+		Status = EFI_ACCESS_DENIED;
+		goto out;
+	}
+
 	NewFile->Path = Path;
 	/* Avoid double free on error */
 	Path = NULL;
@@ -128,12 +153,20 @@ FileOpen(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
 	}
 	NewFile->BaseName = &NewFile->Path[i + 1];
 
-	/* NB: The call below may update NewFile to an existing open instance */
-	Status = NtfsOpenFile(&NewFile);
-	if (EFI_ERROR(Status)) {
-		if (Status != EFI_NOT_FOUND)
-			PrintStatusError(Status, L"Could not open file '%s'", Name);
-		goto out;
+	/* NB: The calls below may update NewFile to an existing open instance */
+	if (Mode & EFI_FILE_MODE_CREATE) {
+		NewFile->IsDir = Attributes & EFI_FILE_DIRECTORY;
+		PrintInfo(L"Creating %s '%s'\n", NewFile->IsDir ? L"dir" : L"file", NewFile->Path);
+		Status = NtfsCreateFile(&NewFile);
+		if (EFI_ERROR(Status))
+			goto out;
+	} else {
+		Status = NtfsOpenFile(&NewFile);
+		if (EFI_ERROR(Status)) {
+			if (Status != EFI_NOT_FOUND)
+				PrintStatusError(Status, L"Could not open file '%s'", Name);
+			goto out;
+		}
 	}
 
 	NewFile->RefCount++;
@@ -199,11 +232,18 @@ FileClose(EFI_FILE_HANDLE This)
  *
  * @v This			File handle
  * @ret Status		EFI status code
+ *
+ * Note that, per specs, this function call can only ever
+ * return EFI_SUCCESS or EFI_WARN_DELETE_FAILURE...
  */
 EFI_STATUS EFIAPI
 FileDelete(EFI_FILE_HANDLE This)
 {
+	EFI_STATUS Status;
 	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+
+	/* Keep a pointer to the FS since we're going to delete File */
+	EFI_FS* FileSystem = File->FileSystem;
 
 	PrintInfo(L"Delete(" PERCENT_P L"|'%s') %s\n", (UINTN)This, File->Path,
 		File->IsRoot ? L"<ROOT>" : L"");
@@ -211,7 +251,11 @@ FileDelete(EFI_FILE_HANDLE This)
 	if (File->IsRoot || File->NtfsInode == NULL)
 		return EFI_ACCESS_DENIED;
 
-	FileClose(This);
+	File->RefCount--;
+	FileSystem->TotalRefCount--;
+	PrintExtra(L"TotalRefCount = %d\n", FileSystem->TotalRefCount);
+
+	/* No need to close the file, NtfsDeleteFile will do it */
 
 	/* Don't delete root or files that have more than one ref */
 	if (File->IsRoot || File->RefCount > 0)
@@ -222,7 +266,15 @@ FileDelete(EFI_FILE_HANDLE This)
 		return EFI_WARN_DELETE_FAILURE;
 	}
 
-	return EFI_UNSUPPORTED;
+	Status = NtfsDeleteFile(File);
+	NtfsFreeFile(File);
+
+	/* If there are no more files open on the volume, unmount it */
+	if (FileSystem->TotalRefCount <= 0) {
+		PrintInfo(L"Last file instance: Unmounting volume\n");
+		NtfsUnmountVolume(FileSystem);
+	}
+	return Status;
 }
 
 /**
@@ -338,10 +390,20 @@ FileWrite(EFI_FILE_HANDLE This, UINTN* Len, VOID* Data)
 {
 	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
 
+	PrintExtra(L"Write(" PERCENT_P L"|'%s', %d) %s\n", (UINTN)This, File->Path,
+		*Len, File->IsDir ? L"<DIR>" : L"");
+
+	if (File->NtfsInode == NULL)
+		return EFI_DEVICE_ERROR;
+
 	if (NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume))
 		return EFI_WRITE_PROTECTED;
 
-	return EFI_UNSUPPORTED;
+	/* "Writes to open directory files are not supported" */
+	if (File->IsDir)
+		return EFI_UNSUPPORTED;
+
+	return NtfsWriteFile(File, Data, Len);
 }
 
 /* Ex version */
@@ -558,7 +620,11 @@ FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 EFI_STATUS EFIAPI
 FileSetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN Len, VOID* Data)
 {
+	EFI_STATUS Status;
 	EFI_NTFS_FILE* File = BASE_CR(This, EFI_NTFS_FILE, EfiFile);
+	EFI_FILE_INFO* Info = (EFI_FILE_INFO*)Data;
+	EFI_FILE_SYSTEM_INFO* FSInfo = (EFI_FILE_SYSTEM_INFO*)Data;
+	EFI_FILE_SYSTEM_VOLUME_LABEL* VLInfo = (EFI_FILE_SYSTEM_VOLUME_LABEL*)Data;
 
 	PrintInfo(L"SetInfo(" PERCENT_P L"|'%s', %d) %s\n", (UINTN)This,
 		File->Path, Len, File->IsDir ? L"<DIR>" : L"");
@@ -566,7 +632,41 @@ FileSetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN Len, VOID* Data)
 	if (NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume))
 		return EFI_WRITE_PROTECTED;
 
-	return EFI_UNSUPPORTED;
+	if (File->NtfsInode == NULL)
+		return EFI_DEVICE_ERROR;
+
+	if (CompareMem(Type, &gEfiFileInfoGuid, sizeof(*Type)) == 0) {
+		PrintExtra(L"Set regular file information\n");
+		if ((Len < SIZE_OF_EFI_FILE_INFO + sizeof(CHAR16)) ||
+			(StrSize(Info->FileName) > Len - SIZE_OF_EFI_FILE_INFO))
+			return EFI_BAD_BUFFER_SIZE;
+		if (Info->Attribute & ~EFI_FILE_VALID_ATTR)
+			return EFI_INVALID_PARAMETER;
+		Status = NtfsSetFileInfo(File, Info);
+		if (EFI_ERROR(Status))
+			PrintStatusError(Status, L"Could not set file info");
+		return Status;
+	} else if (CompareMem(Type, &gEfiFileSystemInfoGuid, sizeof(*Type)) == 0) {
+		PrintExtra(L"Set volume label (FS)\n");
+		if (!File->IsRoot)
+			return EFI_ACCESS_DENIED;
+		if ((Len < SIZE_OF_EFI_FILE_SYSTEM_INFO + sizeof(CHAR16)) ||
+			(StrSize(FSInfo->VolumeLabel) > Len - SIZE_OF_EFI_FILE_SYSTEM_INFO))
+			return EFI_BAD_BUFFER_SIZE;
+		return NtfsRenameVolume(File->FileSystem->NtfsVolume,
+			FSInfo->VolumeLabel, (Len - SIZE_OF_EFI_FILE_SYSTEM_INFO) / sizeof(CHAR16));
+	} else if (CompareMem(Type, &gEfiFileSystemVolumeLabelInfoIdGuid, sizeof(*Type)) == 0) {
+		PrintExtra(L"Set volume label (VL)\n");
+		if (!File->IsRoot)
+			return EFI_ACCESS_DENIED;
+		if (Len < sizeof(CHAR16) || StrSize(VLInfo->VolumeLabel) > Len)
+			return EFI_BAD_BUFFER_SIZE;
+		return NtfsRenameVolume(File->FileSystem->NtfsVolume,
+			VLInfo->VolumeLabel, Len / sizeof(CHAR16));
+	} else {
+		PrintError(L"'%s': Cannot set information of type %s", File->Path, GuidToStr(Type));
+		return EFI_UNSUPPORTED;
+	}
 }
 
 /**
@@ -585,10 +685,13 @@ FileFlush(EFI_FILE_HANDLE This)
 
 	PrintInfo(L"Flush(" PERCENT_P L"|'%s')\n", (UINTN) This, File->Path);
 
+	if (File->NtfsInode == NULL)
+		return EFI_DEVICE_ERROR;
+
 	if (NtfsIsVolumeReadOnly(File->FileSystem->NtfsVolume))
 		return EFI_SUCCESS;
 
-	return EFI_UNSUPPORTED;
+	return NtfsFlushFile(File);
 }
 
 /* Ex version */
