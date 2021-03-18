@@ -1112,12 +1112,182 @@ NtfsWriteFile(EFI_NTFS_FILE* File, VOID* Data, UINTN* Len)
 }
 
 /*
+ * Move/Rename a file or directory.
+ * This call frees the NewPath parameter.
+ */
+static EFI_STATUS
+NtfsMoveFile(EFI_NTFS_FILE* File, CHAR16* NewPath)
+{
+	EFI_STATUS Status = EFI_ACCESS_DENIED;
+	EFI_NTFS_FILE *Parent = NULL, *NewParent = NULL, TmpFile = { 0 };
+	CHAR16 *OldPath, *OldBaseName;
+	BOOLEAN SameDir = FALSE, ParentIsChildOfNewParent = FALSE;
+	ntfs_inode *ni, *parent_ni = NULL, *newparent_ni = NULL;
+	char* basename = NULL;
+	INTN TmpLen, Len = SafeStrLen(NewPath);
+	u64 parent_inum = 0, newparent_inum = 0;
+
+	/* Nothing to do if new and old paths are the same */
+	if (StrCmp(File->Path, NewPath) == 0)
+		return EFI_SUCCESS;
+
+	/* Don't alter a file that is dirty */
+	if (IS_DIRTY(File->NtfsInode))
+		return EFI_ACCESS_DENIED;
+
+	FS_ASSERT(NewPath[0] == PATH_CHAR);
+	while (NewPath[--Len] != PATH_CHAR);
+	NewPath[Len] = 0;
+
+	Parent = NtfsLookupParent(File);
+	/* Isolate dirname and get the inode */
+	FS_ASSERT(File->BaseName[-1] == PATH_CHAR);
+	File->BaseName[-1] = 0;
+	SameDir = (StrCmp(NewPath, File->Path) == 0);
+	if (Parent == NULL)
+		parent_ni = NtfsOpenInodeFromPath(File->FileSystem, File->Path);
+	else
+		parent_ni = Parent->NtfsInode;
+	File->BaseName[-1] = PATH_CHAR;
+	if (parent_ni == NULL) {
+		Status = ErrnoToEfiStatus();
+		goto out;
+	}
+	parent_inum = parent_ni->mft_no;
+
+	/* Validate the new BaseName */
+	if (ntfs_forbidden_names(File->FileSystem->NtfsVolume,
+		&NewPath[Len + 1], SafeStrLen(&NewPath[Len + 1]), TRUE)) {
+		Status = EFI_INVALID_PARAMETER;
+		goto out;
+	}
+
+	if (!SameDir) {
+		TmpFile.FileSystem = File->FileSystem;
+		TmpFile.Path = NewPath;
+		NewParent = NtfsLookupPath(&TmpFile, TRUE);
+		if (NewParent != NULL)
+			newparent_ni = NewParent->NtfsInode;
+		else {
+			/*
+			 * We have to temporarily close parent_ni since it's open and
+			 * potentially not associated to a file we can lookup (which
+			 * could therefore produce a double inode open).
+			 */
+			ntfs_inode_close(parent_ni);
+			newparent_ni = NtfsOpenInodeFromPath(File->FileSystem, NewPath);
+			parent_ni = ntfs_inode_open(File->FileSystem->NtfsVolume, parent_inum);
+		}
+		if (newparent_ni == NULL) {
+			Status = ErrnoToEfiStatus();
+			goto out;
+		}
+		newparent_inum = newparent_ni->mft_no;
+
+		/*
+		 * Here, we have to find if 'newparent' is the parent of
+		 * 'parent' as this decides the order in which we must
+		 * close the directories to avoid a double inode open.
+		 */
+		File->BaseName[-1] = 0;
+		TmpLen = StrLen(File->Path);
+		if (TmpLen > 0) {
+			FS_ASSERT(File->Path[0] == PATH_CHAR);
+			while (File->Path[--TmpLen] != PATH_CHAR);
+			File->Path[TmpLen] = 0;
+			ParentIsChildOfNewParent = (StrCmp(File->Path, NewPath) == 0);
+			File->Path[TmpLen] = PATH_CHAR;
+		}
+		File->BaseName[-1] = PATH_CHAR;
+	}
+
+	/* Re-complete the target path */
+	NewPath[Len] = PATH_CHAR;
+
+	/* Create the target */
+	ni = File->NtfsInode;
+	if (ntfs_link(ni, SameDir ? parent_ni : newparent_ni, &NewPath[Len + 1], StrLen(&NewPath[Len + 1]))) {
+		Status = ErrnoToEfiStatus();
+		goto out;
+	}
+
+	/* Set the new FileName and BaseName */
+	OldPath = File->Path;
+	OldBaseName = File->BaseName;
+	File->Path = NewPath;
+	File->BaseName = &NewPath[Len + 1];
+	/* So that we free the right string on exit */
+	NewPath = OldPath;
+
+	/* Must close newparent_ni to keep ntfs-3g happy on delete */
+	if (!SameDir)
+		ntfs_inode_close(newparent_ni);
+
+	/* Delete the old reference */
+	if (ntfs_delete(ni->vol, NULL, ni, parent_ni, OldBaseName, StrLen(OldBaseName))) {
+		Status = ErrnoToEfiStatus();
+		goto out;
+	}
+	File->NtfsInode = NULL;
+
+	/* Above call closed parent_ni, so we need to reopen it */
+	parent_ni = ntfs_inode_open(File->FileSystem->NtfsVolume, parent_inum);
+	/* And since we were also forced to close newparent_ni */
+	if (!SameDir)
+		newparent_ni = ntfs_inode_open(File->FileSystem->NtfsVolume, newparent_inum);
+
+	/* Update the inode */
+	to_utf8(File->BaseName, &basename);
+	ni = ntfs_pathname_to_inode(parent_ni->vol, SameDir ? parent_ni : newparent_ni, basename);
+	if (ni == NULL) {
+		Status = ErrnoToEfiStatus();
+		goto out;
+	}
+	File->NtfsInode = ni;
+	ntfs_inode_update_mbsname(SameDir ? parent_ni : newparent_ni, basename, ni->mft_no);
+	if (!SameDir)
+		ntfs_inode_update_times(newparent_ni, NTFS_UPDATE_MCTIME);
+	ntfs_inode_update_times(parent_ni, NTFS_UPDATE_MCTIME);
+	ntfs_inode_update_times(ni, NTFS_UPDATE_CTIME);
+
+	Status = EFI_SUCCESS;
+
+out:
+	free(basename);
+	/*
+	 * Again, because of ntfs-3g's "no inode should be re-opened"
+	 * policy, we must be very careful with the order in which we
+	 * close the parents, in case one is the direct child of the
+	 * other. Else the internal sync will result in a double open.
+	 */
+	if (ParentIsChildOfNewParent) {
+		if (NewParent == NULL)
+			ntfs_inode_close(newparent_ni);
+		else
+			NewParent->NtfsInode = newparent_ni;
+	}
+	if (Parent == NULL)
+		ntfs_inode_close(parent_ni);
+	else
+		Parent->NtfsInode = parent_ni;
+	if (!SameDir & !ParentIsChildOfNewParent) {
+		if (NewParent == NULL)
+			ntfs_inode_close(newparent_ni);
+		else
+			NewParent->NtfsInode = newparent_ni;
+	}
+	FreePool(NewPath);
+	return Status;
+}
+
+/*
  * Update NTFS inode data with the attributes from an EFI_FILE_INFO struct.
  */
 EFI_STATUS
 NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info)
 {
 	CONST EFI_TIME ZeroTime = { 0 };
+	EFI_STATUS Status;
 	CHAR16* Path, * c;
 	ntfs_inode* ni = File->NtfsInode;
 	ntfs_attr* na;
@@ -1142,8 +1312,9 @@ NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info)
 		}
 		CleanPath(Path);
 		if (StrCmp(Path, File->Path)) {
-			/* TODO: Add move support */
-			return EFI_UNSUPPORTED;
+			Status = NtfsMoveFile(File, Path);
+			if (EFI_ERROR(Status))
+				return Status;
 		}
 	}
 
