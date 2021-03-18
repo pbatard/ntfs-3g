@@ -1,4 +1,17 @@
-This README file describes the compilation of ntfs-3g as a UEFI driver
+This README pertains to the use of ntfs-3g as a UEFI driver
+
+COMPILATION
+===========
+
+General options
+---------------
+
+The default UEFI driver provides read-write access to an NTFS volume.
+
+If you would rather compile a read-only version of this driver, you should
+either define the FORCE_READONLY macro in include/uefi-driver/uefi-driver.h
+or pass that macro as a compiler option (through '-D FORCE_READONLY=TRUE' if
+using EDK2).
 
 Linux (EDK2)
 ------------
@@ -42,3 +55,21 @@ build -a X64 -b RELEASE -t VS2019 -p uefi-driver.dsc
 You may also use IA32, ARM or AARCH64 for the -a parameter to build a driver
 for these architectures noting however that for ARM or ARM64 compilation, you
 must have selected the relevant C++ components during Visual Studio install.
+
+USAGE
+=====
+
+Simply load the driver from a UEFI Shell using the 'load' command and then
+issue 'map -r' to remap volumes. This should grant access to any NTFS volume
+that is accessible from UEFI.
+
+Note that NTFS volumes are unmounted, fully, as soon as the last open file
+handle to that volume is closed. This should make the driver safe for surprise
+removal/shutdown as long as you don't perform these operations in the middle
+of a Shell command or during the execution of a UEFI application.
+
+COMPLIANCE
+==========
+
+This UEFI NTFS driver should comply with the UEFI specifications, and
+especially with sections 13.4 and 13.5 from version 2.8 Errata A of the specs.

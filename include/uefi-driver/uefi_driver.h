@@ -73,7 +73,23 @@
 
 /* A file instance */
 typedef struct _EFI_NTFS_FILE {
-	EFI_FILE                         EfiFile;
+	/*
+	 * Considering that there are only two variations of a file
+	 * handle (one for rw desired access mode and the other for
+	 * ro) it doesn't really make sense to allocate a different
+	 * EFI_NTFS_FILE structure for each. Instead since the handle
+	 * we return must start with an EFI_FILE we can just have two
+	 * EFI_FILE members, with one followed by an 0xFF..FF address
+	 * (i.e. an invalid one) which we then use to detect if the
+	 * desired access mode should be RO or RW. Note that, per
+	 * UEFI specs, the only valid combinations that a file may be
+	 * opened with are: Read, Read/Write, or Create/Read/Write.
+	 * so we only need to consider read-only vs read/write.
+	 */
+	EFI_FILE                         EfiFileRW;
+	UINTN                            DetectRO;
+	EFI_FILE                         EfiFileRO;
+	UINTN                            MarkerRO;
 	BOOLEAN                          IsDir;
 	BOOLEAN                          IsRoot;
 	INT64                            DirPos;
