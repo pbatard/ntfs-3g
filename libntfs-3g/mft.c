@@ -1074,7 +1074,7 @@ static int ntfs_mft_data_extend_allocation(ntfs_volume *vol)
 	if (!min_nr)
 		min_nr = 1;
 	/* Want to allocate 16 mft records worth of clusters. */
-	nr = vol->mft_record_size << 4 >> vol->cluster_size_bits;
+	nr = (s64)vol->mft_record_size << 4 >> vol->cluster_size_bits;
 	if (!nr)
 		nr = min_nr;
 	
@@ -1439,6 +1439,10 @@ ntfs_inode *ntfs_mft_rec_alloc(ntfs_volume *vol, BOOL mft_data)
 	mftbmp_na = vol->mftbmp_na;
 
 	base_ni = mft_na->ni;
+	if (!base_ni) {
+		ntfs_log_error("$MFT base ni is NULL\n");
+		goto err_out;
+	}
 
 	/*
 	 * The first extent containing $MFT:$AT_DATA is better located
@@ -1620,7 +1624,7 @@ err_out:
 	if (!errno)
 		errno = EIO;
 	ni = NULL;
-	goto out;	
+	goto out;
 }
 
 /**
