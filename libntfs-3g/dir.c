@@ -1639,7 +1639,7 @@ static ntfs_inode *__ntfs_create(ntfs_inode *dir_ni, le32 securid,
 					data = (INTX_FILE*)NULL;
 					break;
 				default :
-					data_len = sizeof(INTX_FILE_TYPES) +
+					data_len = sizeof(le64) +
 						target_len * sizeof(ntfschar);
 					data = (INTX_FILE*)ntfs_malloc(
 								data_len);
