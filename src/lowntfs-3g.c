@@ -859,10 +859,10 @@ static int ntfs_fuse_getstat(struct SECURITY_CONTEXT *scx,
 			 * Check whether it's Interix symbolic link, block or
 			 * character device.
 			 */
-			if ((u64)na->data_size <= sizeof(INTX_FILE_TYPES)
+			if ((u64)na->data_size <= sizeof(le64)
 					+ sizeof(ntfschar) * PATH_MAX
 				&& (u64)na->data_size >
-					sizeof(INTX_FILE_TYPES)) {
+					sizeof(le64)) {
 				INTX_FILE *intx_file;
 
 				intx_file =
@@ -1180,11 +1180,11 @@ static void ntfs_fuse_readlink(fuse_req_t req, fuse_ino_t ino)
 		res = -errno;
 		goto exit;
 	}
-	if ((size_t)na->data_size <= sizeof(INTX_FILE_TYPES)) {
+	if ((size_t)na->data_size <= sizeof(le64)) {
 		res = -EINVAL;
 		goto exit;
 	}
-	if ((size_t)na->data_size > sizeof(INTX_FILE_TYPES) +
+	if ((size_t)na->data_size > sizeof(le64) +
 			sizeof(ntfschar) * PATH_MAX) {
 		res = -ENAMETOOLONG;
 		goto exit;
