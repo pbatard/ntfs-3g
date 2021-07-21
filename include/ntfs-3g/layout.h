@@ -380,7 +380,7 @@ typedef struct {
 /* 20*/	le16 attrs_offset;	/* Byte offset to the first attribute in this
 				   mft record from the start of the mft record.
 				   NOTE: Must be aligned to 8-byte boundary. */
-/* 22*/	MFT_RECORD_FLAGS flags;	/* Bit array of MFT_RECORD_FLAGS. When a file
+/* 22*/	le16 flags;	/* Bit array of MFT_RECORD_FLAGS. When a file
 				   is deleted, the MFT_RECORD_IN_USE flag is
 				   set to zero. */
 /* 24*/	le32 bytes_in_use;	/* Number of bytes used in this mft record.
@@ -457,7 +457,7 @@ typedef struct {
 /* 20*/	le16 attrs_offset;	/* Byte offset to the first attribute in this
 				   mft record from the start of the mft record.
 				   NOTE: Must be aligned to 8-byte boundary. */
-/* 22*/	MFT_RECORD_FLAGS flags;	/* Bit array of MFT_RECORD_FLAGS. When a file
+/* 22*/	le16 flags;	/* Bit array of MFT_RECORD_FLAGS. When a file
 				   is deleted, the MFT_RECORD_IN_USE flag is
 				   set to zero. */
 /* 24*/	le32 bytes_in_use;	/* Number of bytes used in this mft record.
@@ -754,7 +754,7 @@ typedef struct {
 				   array, resident and non-resident attributes
 				   respectively, aligning to an 8-byte
 				   boundary. */
-/* 12*/	ATTR_FLAGS flags;	/* Flags describing the attribute. */
+/* 12*/	le16 flags;			/* ATTR_FLAGS describing the attribute. */
 /* 14*/	le16 instance;		/* The instance of this attribute record. This
 				   number is unique within this mft record (see
 				   MFT_RECORD/next_attribute_instance notes
@@ -770,7 +770,7 @@ typedef struct {
 					       have a name present as this might
 					       not have a length of a multiple
 					       of 8-bytes. */
-/* 22 */		RESIDENT_ATTR_FLAGS resident_flags; /* See above. */
+/* 22 */		u8 resident_flags;	/*RESIDENT_ATTR_FLAGS. */
 /* 23 */		s8 reservedR;	    /* Reserved/alignment to 8-byte
 					       boundary. */
 /* 24 */		void *resident_end[0]; /* Use offsetof(ATTR_RECORD,
@@ -1141,7 +1141,7 @@ typedef struct {
 					   multiple of the cluster size. */
 /* 30*/	sle64 data_size;			/* Byte size of actual data in data
 					   attribute. */
-/* 38*/	FILE_ATTR_FLAGS file_attributes;	/* Flags describing the file. */
+/* 38*/	le32 file_attributes;	/* FILE_ATTR_FLAGS describing the file. */
 /* 3c*/	union {
 	/* 3c*/	struct {
 		/* 3c*/	le16 packed_ea_size;	/* Size of the buffer needed to
@@ -1156,7 +1156,7 @@ typedef struct {
 	} __attribute__((__packed__));
 /* 40*/	u8 file_name_length;			/* Length of file name in
 						   (Unicode) characters. */
-/* 41*/	FILE_NAME_TYPE_FLAGS file_name_type;	/* Namespace of the file name.*/
+/* 41*/	u8 file_name_type;	/* FILE_NAME_TYPE_FLAGS namespace.*/
 /* 42*/	ntfschar file_name[0];			/* File name in Unicode. */
 } __attribute__((__packed__)) FILE_NAME_ATTR;
 
@@ -1174,7 +1174,7 @@ typedef struct {
 	sle64 last_access_time;
 	sle64 allocated_size;
 	sle64 data_size;
-	FILE_ATTR_FLAGS file_attributes;
+	u32 file_attributes;
 	union {
 		struct {
 			le16 packed_ea_size;
@@ -1183,7 +1183,7 @@ typedef struct {
 		le32 reparse_point_tag;
 	} __attribute__((__packed__));
 	u8 file_name_length;
-	FILE_NAME_TYPE_FLAGS file_name_type;
+	u8 file_name_type;
 } __attribute__((__packed__)) FILE_NAME_ATTR_BASE;
 
 _Static_assert(sizeof(FILE_NAME_ATTR_BASE) == 0x42, "Incorrect FILE_NAME_ATTR_BASE size");
@@ -1714,10 +1714,9 @@ typedef struct {
  */
 typedef struct {
 /*  0	ACE_HEADER; -- Unfolded here as gcc doesn't like unnamed structs. */
-	ACE_TYPES type;		/* Type of the ACE. */
-	ACE_FLAGS flags;	/* Flags describing the ACE. */
+	u8 type;		/* ACE_TYPES type describing the ACE. */
+	u8 flags;		/* ACE_FLAGS describing the ACE. */
 	le16 size;		/* Size in bytes of the ACE. */
-
 /*  4*/	ACCESS_MASK mask;	/* Access mask associated with the ACE. */
 /*  8*/	SID sid;		/* The SID associated with the ACE. */
 } __attribute__((__packed__)) ACCESS_ALLOWED_ACE, ACCESS_DENIED_ACE,
@@ -1738,10 +1737,9 @@ typedef enum {
  */
 typedef struct {
 /*  0	ACE_HEADER; -- Unfolded here as gcc doesn't like unnamed structs. */
-	ACE_TYPES type;		/* Type of the ACE. */
-	ACE_FLAGS flags;	/* Flags describing the ACE. */
+	u8 type;		/* ACE_TYPES type describing the ACE. */
+	u8 flags;		/* ACE_FLAGS describing the ACE. */
 	le16 size;		/* Size in bytes of the ACE. */
-
 /*  4*/	ACCESS_MASK mask;	/* Access mask associated with the ACE. */
 /*  8*/	OBJECT_ACE_FLAGS object_flags;	/* Flags describing the object ACE. */
 /* 12*/	NTFS_GUID object_type;
@@ -1866,8 +1864,8 @@ typedef enum {
 typedef struct {
 	u8 revision;	/* Revision level of the security descriptor. */
 	u8 alignment;
-	SECURITY_DESCRIPTOR_CONTROL control; /* Flags qualifying the type of
-			   the descriptor as well as the following fields. */
+	le16 control; /* SECURITY_DESCRIPTOR_CONTROL flags qualifying the
+			    type of the descriptor as well as the following fields. */
 	le32 owner;	/* Byte offset to a SID representing an object's
 			   owner. If this is NULL, no owner SID is present in
 			   the descriptor. */
@@ -1900,8 +1898,8 @@ _Static_assert(sizeof(SECURITY_DESCRIPTOR_RELATIVE) == 0x14, "Incorrect SECURITY
 typedef struct {
 	u8 revision;	/* Revision level of the security descriptor. */
 	u8 alignment;
-	SECURITY_DESCRIPTOR_CONTROL control;	/* Flags qualifying the type of
-			   the descriptor as well as the following fields. */
+	le16 control;	/* SECURITY_DESCRIPTOR_CONTROL flags qualifying the
+			   type of the descriptor as well as the following fields. */
 	SID *owner;	/* Points to a SID representing an object's owner. If
 			   this is NULL, no owner SID is present in the
 			   descriptor. */
@@ -2162,7 +2160,7 @@ typedef struct {
 	   by the corresponding INDEX_ROOT attribute minus the INDEX_BLOCK 
 	   size not counting the INDEX_HEADER part (i.e. minus -24).
 	 */
-/* 12*/	INDEX_HEADER_FLAGS ih_flags;	/* Bit field of INDEX_HEADER_FLAGS.  */
+/* 12*/	u8 ih_flags;	/* Bit field of INDEX_HEADER_FLAGS.  */
 /* 13*/	u8 reserved[3];			/* Reserved/align to 8-byte boundary.*/
 /* sizeof() == 16 */
 } __attribute__((__packed__)) INDEX_HEADER;
@@ -2311,7 +2309,7 @@ typedef enum {
  */
 typedef struct {
 	le32 version;		/* Currently equals 2. */
-	QUOTA_FLAGS flags;	/* Flags describing this quota entry. */
+	le32 flags;			/* QUOTA_FLAGS describing this quota entry. */
 	le64 bytes_used;		/* How many bytes of the quota are in use. */
 	sle64 change_time;	/* Last time this quota entry was changed. */
 	sle64 threshold;		/* Soft quota (-1 if not limited). */
@@ -2382,7 +2380,7 @@ typedef struct {
 	} __attribute__((__packed__));
 /*  8*/	le16 length;
 /* 10*/	le16 key_length;
-/* 12*/	INDEX_ENTRY_FLAGS flags;
+/* 12*/	le16 flags;		/* INDEX_ENTRY_FLAGS */
 /* 14*/	le16 reserved;
 /* sizeof() = 16 bytes */
 } __attribute__((__packed__)) INDEX_ENTRY_HEADER;
@@ -2419,7 +2417,7 @@ typedef struct {
 /* 10*/ le16 key_length;		 /* Byte size of the key value, which is in the
 				    index entry. It follows field reserved. Not
 				    multiple of 8-bytes. */
-/* 12*/	INDEX_ENTRY_FLAGS ie_flags; /* Bit field of INDEX_ENTRY_* flags. */
+/* 12*/	le16 ie_flags; /* Bit field of INDEX_ENTRY_FLAGS. */
 /* 14*/	le16 reserved;		 /* Reserved/align to 8-byte boundary. */
 /*	End of INDEX_ENTRY_HEADER */
 /* 16*/	union {		/* The key of the indexed attribute. NOTE: Only present
@@ -2589,7 +2587,7 @@ typedef enum {
  */
 typedef struct {
 	le32 next_entry_offset;	/* Offset to the next EA_ATTR. */
-	EA_FLAGS flags;		/* Flags describing the EA. */
+	u8 flags;		/* EA_FLAGS describing the EA. */
 	u8 name_length;		/* Length of the name of the extended
 				   attribute in bytes. */
 	le16 value_length;	/* Byte size of the EA's value. */
@@ -2604,7 +2602,7 @@ _Static_assert(sizeof(EA_ATTR) == 8, "Incorrect EA_ATTR size");
  */
 typedef struct {
 	le32 next_entry_offset;
-	EA_FLAGS flags;
+	u8 flags;
 	u8 name_length;
 	le16 value_length;
 } __attribute__((__packed__)) EA_ATTR_BASE;
