@@ -127,6 +127,8 @@ DevicePathToHex(CONST EFI_DEVICE_PATH* DevicePath)
 
 	while (!IsDevicePathEnd(DevicePath)) {
 		UINT16 NodeLen = DevicePathNodeLength(DevicePath);
+		// Device Paths are provided by UEFI and are sanitized.
+		// coverity[var_assign_var]
 		Len += NodeLen;
 		DevicePath = (EFI_DEVICE_PATH*)((UINT8*)DevicePath + NodeLen);
 	}

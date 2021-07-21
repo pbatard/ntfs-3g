@@ -779,12 +779,17 @@ s64 ntfs_compressed_attr_pread(ntfs_attr *na, s64 pos, s64 count, void *b)
 	FILE_ATTR_FLAGS compression;
 	unsigned int nr_cbs, cb_clusters;
 
+	if (!na || !na->ni) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	ntfs_log_trace("Entering for inode 0x%llx, attr 0x%x, pos 0x%llx, count 0x%llx.\n",
 			(unsigned long long)na->ni->mft_no, le32_to_cpu(na->type),
 			(long long)pos, (long long)count);
 	data_flags = na->data_flags;
 	compression = na->ni->flags & FILE_ATTR_COMPRESSED;
-	if (!na || !na->ni || !na->ni->vol || !b
+	if (!na->ni->vol || !b
 			|| ((data_flags & ATTR_COMPRESSION_MASK)
 				!= ATTR_IS_COMPRESSED)
 			|| pos < 0 || count < 0) {
@@ -2011,8 +2016,8 @@ int ntfs_compressed_close(ntfs_attr *na, runlist_element *wrl, s64 offs,
 				}
 			} else
 				done = TRUE;
-			free(inbuf);
 		}
+		ntfs_free(inbuf);
 	}
 	if (done && !valid_compressed_run(na,wrl,TRUE,"end compressed close"))
 		done = FALSE;

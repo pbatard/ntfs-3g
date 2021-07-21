@@ -562,6 +562,7 @@ static int ntfs_utf16_to_utf8(const ntfschar *ins, const int ins_len,
 	char *t;
 	int i, size, ret = -1;
 	int halfpair;
+	BOOL allocated = FALSE;
 
 	halfpair = 0;
 	if (!*outs) {
@@ -583,6 +584,7 @@ static int ntfs_utf16_to_utf8(const ntfschar *ins, const int ins_len,
 		*outs = ntfs_malloc(outs_len);
 		if (!*outs)
 			goto out;
+		allocated = TRUE;
 	}
 
 	t = *outs;
@@ -682,6 +684,11 @@ static int ntfs_utf16_to_utf8(const ntfschar *ins, const int ins_len,
 	
 	ret = t - *outs;
 out:
+	/* do not leave space allocated if failed */
+	if (ret < 0 && allocated) {
+		free(*outs);
+		*outs = (char*)NULL;
+	}
 	return ret;
 fail:
 	errno = EILSEQ;
@@ -826,7 +833,7 @@ static int ntfs_utf8_to_utf16(const char *ins, ntfschar **outs)
 #endif /* defined(__APPLE__) || defined(__DARWIN__) */
 	const char *t = ins;
 	u32 wc;
-	BOOL allocated;
+	BOOL allocated = FALSE;
 	ntfschar *outpos;
 	int shorts, ret = -1;
 
@@ -834,7 +841,6 @@ static int ntfs_utf8_to_utf16(const char *ins, ntfschar **outs)
 	if (shorts < 0)
 		goto fail;
 
-	allocated = FALSE;
 	if (!*outs) {
 		*outs = ntfs_malloc((shorts + 1) * sizeof(ntfschar));
 		if (!*outs)
@@ -847,14 +853,8 @@ static int ntfs_utf8_to_utf16(const char *ins, ntfschar **outs)
 	while(1) {
 		int m  = utf8_to_unicode(&wc, t);
 		if (m <= 0) {
-			if (m < 0) {
-				/* do not leave space allocated if failed */
-				if (allocated) {
-					free(*outs);
-					*outs = (ntfschar*)NULL;
-				}
+			if (m < 0)
 				goto fail;
-			}
 			*outpos++ = const_cpu_to_le16(0);
 			break;
 		}
@@ -876,6 +876,12 @@ fail:
 		free(new_ins);
 #endif /* ENABLE_NFCONV */
 #endif /* defined(__APPLE__) || defined(__DARWIN__) */
+
+	/* do not leave space allocated if failed */
+	if (ret < 0 && allocated) {
+		free(*outs);
+		*outs = (ntfschar*)NULL;
+	}
 	return ret;
 }
 

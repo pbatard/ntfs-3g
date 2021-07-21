@@ -252,7 +252,7 @@ u64 ntfs_inode_lookup_by_name(ntfs_inode *dir_ni,
 	VCN vcn;
 	u64 mref = 0;
 	s64 br;
-	ntfs_volume *vol = dir_ni->vol;
+	ntfs_volume *vol;
 	ntfs_attr_search_ctx *ctx;
 	INDEX_ROOT *ir;
 	INDEX_ENTRY *ie;
@@ -270,6 +270,7 @@ u64 ntfs_inode_lookup_by_name(ntfs_inode *dir_ni,
 		errno = EINVAL;
 		return -1;
 	}
+	vol = dir_ni->vol;
 
 	ctx = ntfs_attr_get_search_ctx(dir_ni, NULL);
 	if (!ctx)
@@ -585,10 +586,11 @@ u64 ntfs_inode_lookup_by_mbsname(ntfs_inode *dir_ni, const char *name)
 			{
 				/* Generate unicode name. */
 			uname_len = ntfs_mbstoucs(cached_name, &uname);
-			if (uname_len >= 0)
+			if (uname_len >= 0) {
 				inum = ntfs_inode_lookup_by_name(dir_ni,
 						uname, uname_len);
-			else
+				free(uname);
+			} else
 				inum = (s64)-1;
 		}
 		if (cached_name)
@@ -2694,6 +2696,8 @@ int ntfs_set_ntfs_dos_name(ntfs_inode *ni, ntfs_inode *dir_ni,
 	    || ntfs_forbidden_names(ni->vol,shortname,shortlen,TRUE)) {
 		ntfs_inode_close_in_dir(ni,dir_ni);
 		ntfs_inode_close(dir_ni);
+		if (shortlen >= 0)
+			ntfs_free(shortname);
 		res = -errno;
 		return res;
 	}

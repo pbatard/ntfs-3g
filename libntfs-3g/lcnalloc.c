@@ -582,6 +582,11 @@ int ntfs_cluster_free_from_rl(ntfs_volume *vol, runlist *rl)
 
 	ntfs_log_trace("Entering.\n");
 
+	if (!vol || !rl) {
+		ntfs_log_trace("Invalid arguments!\n");
+		errno = EINVAL;
+		return -1;
+	}
 	for (; rl->length; rl++) {
 
 		ntfs_log_trace("Dealloc lcn 0x%llx, len 0x%llx.\n",

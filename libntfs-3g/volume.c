@@ -430,6 +430,7 @@ error_exit:
 		ntfs_inode_close(vol->mft_ni);
 		vol->mft_ni = NULL;
 	}
+	ntfs_free(mb);
 	errno = eo;
 	return -1;
 }
@@ -941,8 +942,8 @@ ntfs_volume *ntfs_device_mount(struct ntfs_device *dev, ntfs_mount_flags flags)
 	ntfs_volume *vol;
 	u8 *m = NULL, *m2 = NULL;
 	ntfs_attr_search_ctx *ctx = NULL;
-	ntfs_inode *ni;
-	ntfs_attr *na;
+	ntfs_inode *ni = NULL;
+	ntfs_attr *na = NULL;
 	ATTR_RECORD *a;
 	VOLUME_INFORMATION *vinf;
 	ntfschar *vname;
@@ -1270,6 +1271,7 @@ ntfs_volume *ntfs_device_mount(struct ntfs_device *dev, ntfs_mount_flags flags)
 	}
 	/* Done with the $AttrDef mft record. */
 	ntfs_attr_close(na);
+	na = NULL;
 	if (ntfs_inode_close(ni)) {
 		ntfs_log_perror("Failed to close $AttrDef");
 		goto error_exit;
@@ -1327,6 +1329,8 @@ error_exit:
 	eo = errno;
 	if (ctx)
 		ntfs_attr_put_search_ctx(ctx);
+	if (na)
+		ntfs_attr_close(na);
 	free(m);
 	free(m2);
 	__ntfs_volume_release(vol);

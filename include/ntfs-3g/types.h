@@ -115,6 +115,11 @@ typedef enum {
 #endif /* defined _WINDEF_H */
 
 /**
+ * Can be used to silence warnings about not checking a returned value.
+ */
+#define IGNORE_RETVAL(expr)  do { (void)(expr); } while(0)
+
+/**
  * enum IGNORE_CASE_BOOL -
  */
 typedef enum {
@@ -129,4 +134,3 @@ typedef enum {
 #define STATUS_NOT_FOUND			(-4)
 
 #endif /* defined _NTFS_TYPES_H */
-

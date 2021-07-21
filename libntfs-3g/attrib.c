@@ -1428,6 +1428,8 @@ static int ntfs_attr_fill_hole(ntfs_attr *na, s64 count, s64 *ofs,
 		na->compressed_size += need << vol->cluster_size_bits;
 	
 	*rl = ntfs_runlists_merge(na->rl, rlc);
+	if (*rl)
+		rlc = NULL;
 	NAttrSetRunlistDirty(na);
 		/*
 		 * For a compressed attribute, we must be sure there are two
@@ -2589,7 +2591,7 @@ retry:
 	if (ctx)
 		ntfs_attr_put_search_ctx(ctx);
 	/* Update mapping pairs if needed. */
-	if (NAttrFullyMapped(na))
+	if (na && NAttrFullyMapped(na))
 		if (ntfs_attr_update_mapping_pairs(na, update_from)) {
 			/*
 			 * FIXME: trying to recover by goto rl_err_out; 
@@ -2599,7 +2601,8 @@ retry:
 			goto out;
 	}
 out:	
-	NAttrClearComprClosing(na);
+	if (na)
+		NAttrClearComprClosing(na);
 	ntfs_log_leave("\n");
 	return (!ok);
 rl_err_out:
@@ -2614,7 +2617,7 @@ err_out:
 	if (ctx)
 		ntfs_attr_put_search_ctx(ctx);
 	/* Update mapping pairs if needed. */
-	if (NAttrFullyMapped(na))
+	if (na && NAttrFullyMapped(na))
 		ntfs_attr_update_mapping_pairs(na, 0);
 	errno = eo;
 errno_set:

@@ -352,6 +352,8 @@ int ntfs_inode_real_close(ntfs_inode *ni)
 		base_ni = ni->base_ni;
 		for (i = 0; i < base_ni->nr_extents; ++i) {
 			tmp_nis = base_ni->extent_nis;
+			if (tmp_nis == NULL)
+				break;
 			if (tmp_nis[i] != ni)
 				continue;
 			/* Found it. Disconnect. */
