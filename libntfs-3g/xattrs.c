@@ -620,6 +620,11 @@ int ntfs_xattr_system_setxattr(struct SECURITY_CONTEXT *scx,
 #endif
 #endif
 
+	if (!ni || !value) {
+		errno = EINVAL;
+		return -errno;
+	}
+
 	switch (attr) {
 	case XATTR_NTFS_ACL :
 		res = ntfs_set_ntfs_acl(scx, ni, value, size, flags);
@@ -669,7 +674,7 @@ int ntfs_xattr_system_setxattr(struct SECURITY_CONTEXT *scx,
 		res = ntfs_set_ntfs_attrib(ni, value, size, flags);
 		break;
 	case XATTR_NTFS_ATTRIB_BE :
-		if (value && (size >= 4)) {
+		if (size >= 4) {
 			memcpy(buf,value,4);
 			fix_big_endian(buf,4);
 			res = ntfs_set_ntfs_attrib(ni, buf, 4, flags);
@@ -704,7 +709,7 @@ int ntfs_xattr_system_setxattr(struct SECURITY_CONTEXT *scx,
 		res = ntfs_inode_set_times(ni, value, size, flags);
 		break;
 	case XATTR_NTFS_TIMES_BE:
-		if (value && (size > 0) && (size <= 4*sizeof(u64))) {
+		if ((size > 0) && (size <= 4*sizeof(u64))) {
 			memcpy(buf,value,size);
 			for (i=0; (i+1)*sizeof(u64)<=size; i++)
 				fix_big_endian(&buf[i*sizeof(u64)],
@@ -718,7 +723,7 @@ int ntfs_xattr_system_setxattr(struct SECURITY_CONTEXT *scx,
 			(size >= sizeof(u64) ? sizeof(u64) : size), flags);
 		break;
 	case XATTR_NTFS_CRTIME_BE:
-		if (value && (size >= sizeof(u64))) {
+		if (size >= sizeof(u64)) {
 			memcpy(buf,value,sizeof(u64));
 			fix_big_endian(buf,sizeof(u64));
 			res = ntfs_inode_set_times(ni, buf, sizeof(u64), flags);

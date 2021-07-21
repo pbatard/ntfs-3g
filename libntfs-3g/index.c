@@ -1997,7 +1997,7 @@ int ntfs_index_rm(ntfs_index_context *icx)
 
 	ntfs_log_trace("Entering\n");
 	
-	if (!icx || (!icx->ib && !icx->ir) || ntfs_ie_end(icx->entry)) {
+	if (!icx || (icx->is_in_root && !icx->ib) || (!icx->is_in_root && !icx->ir) || ntfs_ie_end(icx->entry)) {
 		ntfs_log_error("Invalid arguments.\n");
 		errno = EINVAL;
 		goto err_out;
