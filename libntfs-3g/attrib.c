@@ -2920,7 +2920,7 @@ static int ntfs_attr_find(const ATTR_TYPES type, const ntfschar *name,
 					> le32_to_cpu(a->length))) {
 				ntfs_log_error("Corrupt attribute name"
 					" in MFT record %lld\n",
-					(long long)ctx->ntfs_ino->mft_no);
+					ctx->ntfs_ino ? (long long)ctx->ntfs_ino->mft_no : -1);
 				break;
 			}
 			if (name && ((rc = ntfs_names_full_collate(name,
@@ -3481,7 +3481,7 @@ int ntfs_attr_inconsistent(const ATTR_RECORD *a, const MFT_REF mref)
 	if (a->non_resident) {
 		if ((a->non_resident != 1)
 		    || (le32_to_cpu(a->length)
-			< offsetof(ATTR_RECORD, non_resident_end))
+			< offsetof(ATTR_RECORD, compressed_size))
 		    || (le16_to_cpu(a->mapping_pairs_offset)
 				>= le32_to_cpu(a->length))
 		    || (a->name_length
@@ -3594,7 +3594,7 @@ int ntfs_attr_inconsistent(const ATTR_RECORD *a, const MFT_REF mref)
 		case AT_OBJECT_ID :
 			if (a->non_resident
 			    || (le32_to_cpu(a->value_length)
-					< sizeof(GUID))) {
+					< sizeof(NTFS_GUID))) {
 				ntfs_log_error("Corrupt object id"
 					" in MFT record %lld\n",
 					(long long)inum);

@@ -2040,6 +2040,8 @@ typedef struct {
 					     descriptor. */
 } __attribute__((__packed__)) SDS_ENTRY;
 
+_Static_assert(sizeof(SDS_ENTRY) == 40, "Incorrect SDS_ENTRY size");
+
 /**
  * struct SII_INDEX_KEY - The index entry key used in the $SII index.
  *
@@ -2097,8 +2099,10 @@ typedef struct {
 	le64 reserved;		/* Not used (yet?). */
 	u8 major_ver;		/* Major version of the ntfs format. */
 	u8 minor_ver;		/* Minor version of the ntfs format. */
-	VOLUME_FLAGS flags;	/* Bit array of VOLUME_* flags. */
+	le16 flags;			/* Bit array of VOLUME_* flags. */
 } __attribute__((__packed__)) VOLUME_INFORMATION;
+
+_Static_assert(sizeof(VOLUME_INFORMATION) == 12, "Incorrect VOLUME_INFORMATION size");
 
 /**
  * struct DATA_ATTR - Attribute: Data attribute (0x80).
