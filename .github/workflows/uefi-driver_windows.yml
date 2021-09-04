@@ -1,13 +1,13 @@
 name: UEFI driver - Windows (MSVC with gnu-efi) build
 
-on: push
+on: [push, pull_request]
 
 env:
   SOLUTION_FILE_PATH: ./uefi-driver.sln
   BUILD_CONFIGURATION: Release
 
 jobs:
-  build:
+  Windows-UEFI-Build:
     runs-on: windows-latest
 
     strategy:
