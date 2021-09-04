@@ -1,6 +1,6 @@
 name: UEFI driver - Linux (gcc with EDK2) build
 
-on: push
+on: [push, pull_request]
 
 env:
   BUILD_TYPE: RELEASE
@@ -9,7 +9,7 @@ env:
   GCC5_RISCV64_PREFIX: riscv64-linux-gnu-
 
 jobs:
-  build:
+  Linux-UEFI-Build:
     runs-on: ubuntu-latest
 
     strategy:
