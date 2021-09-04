@@ -1,13 +1,13 @@
 name: UEFI driver - Coverity (MSVC with gnu-efi) build
 
-on: push
+on: [push, pull_request]
 
 env:
   SOLUTION_FILE_PATH: ./uefi-driver.sln
   EMAIL: pete@akeo.ie
 
 jobs:
-  build:
+  Coverity-UEFI-Build:
     runs-on: windows-latest
 
     steps:

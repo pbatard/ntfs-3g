@@ -3,7 +3,7 @@ name: ntfs-3g - Linux (gcc, Clang) build
 on: [push, pull_request]
 
 jobs:
-  build:
+  Linux-Regular-Build:
     runs-on: ubuntu-latest
 
     strategy:    
