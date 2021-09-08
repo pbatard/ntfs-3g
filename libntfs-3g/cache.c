@@ -485,7 +485,7 @@ static struct CACHE_HEADER *ntfs_create_cache(const char *name,
 	size_t size;
 	int i;
 
-	size = sizeof(struct CACHE_HEADER) + item_count*full_item_size;
+	size = (size_t)item_count * full_item_size + sizeof(struct CACHE_HEADER);
 	if (max_hash)
 		size += item_count*sizeof(struct HASH_ENTRY)
 			 + max_hash*sizeof(struct HASH_ENTRY*);
