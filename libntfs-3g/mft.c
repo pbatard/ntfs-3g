@@ -181,10 +181,10 @@ int ntfs_mft_records_write(const ntfs_volume *vol, const MFT_REF mref,
 				vol->mft_record_size_bits);
 			return -1;
 		}
-		bmirr = ntfs_malloc(cnt * vol->mft_record_size);
+		bmirr = ntfs_malloc((size_t)cnt * vol->mft_record_size);
 		if (!bmirr)
 			return -1;
-		memcpy(bmirr, b, cnt * vol->mft_record_size);
+		memcpy(bmirr, b, (size_t)cnt * vol->mft_record_size);
 	}
 	bw = ntfs_attr_mst_pwrite(vol->mft_na, m << vol->mft_record_size_bits,
 			count, vol->mft_record_size, b);

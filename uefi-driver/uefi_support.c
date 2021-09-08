@@ -101,9 +101,9 @@ time_t EfiTimeToUnixTime(EFI_TIME* Time)
 
 	return (
 		(
-			((UINT64)
-				(Year / 4 - Year / 100 + Year / 400 + 367 * Month / 12 + Time->Day) +
-				Year * 365 - 719499
+			(
+				((UINT64)Year / 4 - Year / 100 + Year / 400 + 367 * Month / 12 + Time->Day) +
+				(UINT64)Year * 365 - 719499
 				) * 24 + Time->Hour /* now have hours */
 			) * 60 + Time->Minute /* now have minutes */
 		) * 60 + Time->Second; /* finally seconds */

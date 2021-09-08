@@ -73,8 +73,8 @@ static __inline__ struct timespec ntfs2timespec(ntfs_time ntfstime)
 
 	cputime = sle64_to_cpu(ntfstime);
 	spec.tv_sec = (cputime - (NTFS_TIME_OFFSET)) / 10000000;
-	spec.tv_nsec = (cputime - (NTFS_TIME_OFFSET)
-			- (s64)spec.tv_sec*10000000)*100;
+	spec.tv_nsec = (long)((cputime - (NTFS_TIME_OFFSET)
+			- (s64)spec.tv_sec*10000000)*100);
 		/* force zero nsec for overflowing dates */
 	if ((spec.tv_nsec < 0) || (spec.tv_nsec > 999999999))
 		spec.tv_nsec = 0;
