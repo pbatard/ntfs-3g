@@ -103,7 +103,7 @@ static inline unsigned int ntfs_hash(const u8 *p)
 	u32 str;
 	u32 hash;
 
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
 	/* Unaligned access allowed, and little endian CPU.
 	 * Callers ensure that at least 4 (not 3) bytes are remaining.  */
 	str = *(const u32 *)p & 0xFFFFFF;
@@ -1069,7 +1069,6 @@ static u32 read_clusters(ntfs_volume *vol, const runlist_element *rl,
 		xgot = ntfs_pread(vol->dev, xpos, count, xinbuf);
 		if (xgot == (int)count) {
 			got += count;
-			xpos += count;
 			xinbuf += count;
 			xrl++;
 		}
@@ -1110,7 +1109,6 @@ static s32 write_clusters(ntfs_volume *vol, const runlist_element *rl,
 		xput = ntfs_pwrite(vol->dev, xpos, count, xoutbuf);
 		if (xput == count) {
 			put += count;
-			xpos += count;
 			xoutbuf += count;
 			xrl++;
 		}
@@ -1375,7 +1373,7 @@ static int ntfs_compress_overwr_free(ntfs_attr *na, runlist_element *rl,
       			}
       			frl++;
    		}
-		na->compressed_size -= freed << vol->cluster_size_bits;
+		na->compressed_size -= (s64)freed << vol->cluster_size_bits;
 		switch (holes) {
 		case 0 :
 			/* there are no hole, must insert one */
@@ -1488,7 +1486,7 @@ static int ntfs_compress_overwr_free(ntfs_attr *na, runlist_element *rl,
 			*++xrl = *frl++;
 		}
 		*++xrl = *frl; /* terminator */
-	na->compressed_size -= freed << vol->cluster_size_bits;
+	na->compressed_size -= (s64)freed << vol->cluster_size_bits;
 	}
 	return (res);
 }
@@ -1604,7 +1602,7 @@ static int ntfs_compress_free(ntfs_attr *na, runlist_element *rl,
 				/* free the hole */
 				res = ntfs_cluster_free_from_rl(vol,freerl);
 				if (!res) {
-					na->compressed_size -= freecnt
+					na->compressed_size -= (s64)freecnt
 						<< vol->cluster_size_bits;
 					if (mergeholes) {
 						/* merge with adjacent hole */

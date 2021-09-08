@@ -959,8 +959,8 @@ ntfs_volume *ntfs_device_mount(struct ntfs_device *dev, ntfs_mount_flags flags)
 		return NULL;
 
 	/* Load data from $MFT and $MFTMirr and compare the contents. */
-	m  = ntfs_malloc(vol->mftmirr_size << vol->mft_record_size_bits);
-	m2 = ntfs_malloc(vol->mftmirr_size << vol->mft_record_size_bits);
+	m  = ntfs_malloc((size_t)vol->mftmirr_size << vol->mft_record_size_bits);
+	m2 = ntfs_malloc((size_t)vol->mftmirr_size << vol->mft_record_size_bits);
 	if (!m || !m2)
 		goto error_exit;
 

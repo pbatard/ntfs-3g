@@ -45,7 +45,7 @@
 static inline int _to_utf8(CONST CHAR16* Src, char** dst, const char* function)
 {
 	/* ntfs_ucstombs() can be used to convert to UTF-8 */
-	int sz = ntfs_ucstombs(Src, SafeStrLen(Src), dst, 0);
+	int sz = ntfs_ucstombs(Src, (const int)SafeStrLen(Src), dst, 0);
 	if (sz < 0)
 		PrintError(L"%a failed to convert '%s': %a\n",
 			function, Src, strerror(errno));
@@ -763,7 +763,7 @@ NtfsReadFile(EFI_NTFS_FILE* File, VOID* Data, UINTN* Len)
 		}
 		size -= ret;
 		File->Offset += ret;
-		*Len += ret;
+		*Len += (UINTN)ret;
 	}
 
 	ntfs_attr_close(na);
@@ -913,7 +913,7 @@ NtfsCreateFile(EFI_NTFS_FILE** FilePointer)
 
 	/* Validate BaseName */
 	if (ntfs_forbidden_names(File->FileSystem->NtfsVolume,
-		File->BaseName, SafeStrLen(File->BaseName), TRUE)) {
+		File->BaseName, (int)SafeStrLen(File->BaseName), TRUE)) {
 		return EFI_INVALID_PARAMETER;
 	}
 
@@ -957,7 +957,7 @@ NtfsCreateFile(EFI_NTFS_FILE** FilePointer)
 	} else {
 		/* Create the new file or directory */
 		ni = ntfs_create(dir_ni, 0, File->BaseName,
-			SafeStrLen(File->BaseName), File->IsDir ? S_IFDIR : S_IFREG);
+			(u8)SafeStrLen(File->BaseName), File->IsDir ? S_IFDIR : S_IFREG);
 		if (ni == NULL) {
 			Status = ErrnoToEfiStatus();
 			goto out;
@@ -1042,7 +1042,7 @@ NtfsDeleteFile(EFI_NTFS_FILE* File)
 
 	/* Delete the file */
 	r = ntfs_delete(File->FileSystem->NtfsVolume, NULL, File->NtfsInode,
-		dir_ni, File->BaseName, SafeStrLen(File->BaseName));
+		dir_ni, File->BaseName, (u8)SafeStrLen(File->BaseName));
 	NtfsLookupRem(File);
 	if (r < 0) {
 		PrintError(L"%a failed: %a\n", __FUNCTION__, strerror(errno));
@@ -1103,7 +1103,7 @@ NtfsWriteFile(EFI_NTFS_FILE* File, VOID* Data, UINTN* Len)
 		}
 		size -= ret;
 		File->Offset += ret;
-		*Len += ret;
+		*Len += (UINTN)ret;
 	}
 
 	ntfs_attr_close(na);
@@ -1159,7 +1159,7 @@ NtfsMoveFile(EFI_NTFS_FILE* File, CHAR16* NewPath)
 
 	/* Validate the new BaseName */
 	if (ntfs_forbidden_names(File->FileSystem->NtfsVolume,
-		&NewPath[Len + 1], SafeStrLen(&NewPath[Len + 1]), TRUE)) {
+		&NewPath[Len + 1], (int)SafeStrLen(&NewPath[Len + 1]), TRUE)) {
 		Status = EFI_INVALID_PARAMETER;
 		goto out;
 	}
@@ -1208,7 +1208,7 @@ NtfsMoveFile(EFI_NTFS_FILE* File, CHAR16* NewPath)
 
 	/* Create the target */
 	ni = File->NtfsInode;
-	if (ntfs_link(ni, SameDir ? parent_ni : newparent_ni, &NewPath[Len + 1], StrLen(&NewPath[Len + 1]))) {
+	if (ntfs_link(ni, SameDir ? parent_ni : newparent_ni, &NewPath[Len + 1], (u8)StrLen(&NewPath[Len + 1]))) {
 		Status = ErrnoToEfiStatus();
 		goto out;
 	}
@@ -1226,7 +1226,7 @@ NtfsMoveFile(EFI_NTFS_FILE* File, CHAR16* NewPath)
 		ntfs_inode_close(newparent_ni);
 
 	/* Delete the old reference */
-	if (ntfs_delete(ni->vol, NULL, ni, parent_ni, OldBaseName, StrLen(OldBaseName))) {
+	if (ntfs_delete(ni->vol, NULL, ni, parent_ni, OldBaseName, (u8)StrLen(OldBaseName))) {
 		Status = ErrnoToEfiStatus();
 		goto out;
 	}

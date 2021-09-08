@@ -305,13 +305,13 @@ static INT32 DirHook(VOID* Data, CONST CHAR16* Name,
 	/* Sanity check since the maximum size of an NTFS file name is 255 */
 	FS_ASSERT(NameLen < 256);
 
-	if (HookData->Info->Size < ((UINTN)NameLen + 1) * sizeof(CHAR16)) {
+	if (HookData->Info->Size < ((UINT64)NameLen + 1) * sizeof(CHAR16)) {
 		NtfsSetErrno(EFI_BUFFER_TOO_SMALL);
 		return -1;
 	}
 	CopyMem(HookData->Info->FileName, Name, NameLen * sizeof(CHAR16));
 	HookData->Info->FileName[NameLen] = 0;
-	HookData->Info->Size = SIZE_OF_EFI_FILE_INFO + ((UINTN)NameLen + 1) * sizeof(CHAR16);
+	HookData->Info->Size = SIZE_OF_EFI_FILE_INFO + ((UINT64)NameLen + 1) * sizeof(CHAR16);
 
 	/* Set the Info attributes we obtain from the inode */
 	Status = NtfsGetFileInfo(HookData->Parent, HookData->Info,
@@ -543,7 +543,7 @@ FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 		}
 
 		CopyMem(Info->FileName, File->BaseName, Size);
-		Info->Size = SIZE_OF_EFI_FILE_INFO + Size;
+		Info->Size = (UINT64)Size + SIZE_OF_EFI_FILE_INFO;
 		*Len = (INTN)Info->Size;
 		return EFI_SUCCESS;
 
@@ -585,7 +585,7 @@ FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 		/* NUL string has already been populated if NtfsVolumeLabel is NULL */
 		if (File->FileSystem->NtfsVolumeLabel != NULL)
 			CopyMem(FSInfo->VolumeLabel, File->FileSystem->NtfsVolumeLabel, Size);
-		FSInfo->Size = SIZE_OF_EFI_FILE_SYSTEM_INFO + Size;
+		FSInfo->Size = (UINT64)Size + SIZE_OF_EFI_FILE_SYSTEM_INFO;
 		*Len = (INTN)FSInfo->Size;
 		return EFI_SUCCESS;
 
