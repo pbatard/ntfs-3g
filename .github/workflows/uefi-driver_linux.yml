@@ -7,6 +7,7 @@ env:
   GCC5_ARM_PREFIX: arm-linux-gnueabi-
   GCC5_AARCH64_PREFIX: aarch64-linux-gnu-
   GCC5_RISCV64_PREFIX: riscv64-linux-gnu-
+  NASM_VERSION: 2.15.05
 
 jobs:
   Linux-UEFI-Build:
@@ -17,10 +18,10 @@ jobs:
         include:
         - TARGET_TYPE: x64
           TARGET_ARCH: X64
-          TARGET_PKGS: python3-distutils nasm uuid-dev
+          TARGET_PKGS: python3-distutils uuid-dev
         - TARGET_TYPE: ia32
           TARGET_ARCH: IA32
-          TARGET_PKGS: gcc-multilib python3-distutils nasm uuid-dev
+          TARGET_PKGS: gcc-multilib python3-distutils uuid-dev
         - TARGET_TYPE: aa64
           TARGET_ARCH: AARCH64
           TARGET_PKGS: gcc-aarch64-linux-gnu python3-distutils uuid-dev
@@ -41,6 +42,17 @@ jobs:
       run: echo "::set-output name=version::$(git describe --tags --abbrev=0)"
     - name: Set up Linux environment
       run: sudo apt install -y ${{matrix.TARGET_PKGS}}
+    - name: Install nasm ${{ env.NASM_VERSION }}
+      # https://edk2.groups.io/g/devel/topic/89637409#87359
+      if: matrix.TARGET_TYPE == 'x64' || matrix.TARGET_TYPE == 'ia32'
+      run: |
+        curl -O https://www.nasm.us/pub/nasm/releasebuilds/${{ env.NASM_VERSION }}/nasm-${{ env.NASM_VERSION }}.tar.bz2
+        tar -xjf nasm-${{ env.NASM_VERSION }}.tar.bz2
+        cd nasm-${{ env.NASM_VERSION }}
+        ./autogen.sh
+        ./configure --prefix=/usr/local/ 
+        make 
+        sudo make install
     - name: Fix missing Risc-V header
       if: matrix.TARGET_TYPE == 'riscv64'
       run: sudo ln -s /usr/riscv64-linux-gnu/include/gnu/stubs-lp64d.h /usr/riscv64-linux-gnu/include/gnu/stubs-lp64.h
