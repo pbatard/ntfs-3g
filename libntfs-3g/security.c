@@ -3462,7 +3462,7 @@ int ntfs_allowed_access(struct SECURITY_CONTEXT *scx,
 	int perm;
 	int res;
 	int allow;
-	struct stat stbuf;
+	struct stat stbuf = { 0 };
 
 	/*
 	 * Always allow for root unless execution is requested.
@@ -3542,7 +3542,7 @@ int ntfs_allowed_create(struct SECURITY_CONTEXT *scx,
 	int perm;
 	int res;
 	int allow;
-	struct stat stbuf;
+	struct stat stbuf = { 0 };
 
 	/*
 	 * Always allow for root.
