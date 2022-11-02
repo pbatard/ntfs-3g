@@ -96,39 +96,39 @@ int ffs(int i)
 void* malloc(size_t size)
 {
 	/* Keep track of the allocated size for realloc */
-	size_t* ptr = AllocatePool(size + sizeof(size_t));
-	if (ptr == NULL)
-		return NULL;
-	ptr[0] = size;
-	return &ptr[1];
+	size_t size_in_memory = size + sizeof(size_t);
+	size_t* ptr = AllocatePool(size_in_memory);
+	if (ptr != NULL)
+		*ptr++ = size_in_memory;
+	return ptr;
 }
 
 void* calloc(size_t nmemb, size_t size)
 {
 	/* Keep track of the allocated size for realloc */
-	size_t* ptr = AllocateZeroPool(size * nmemb + sizeof(size_t));
-	if (ptr == NULL)
-		return NULL;
-	ptr[0] = size;
-	return &ptr[1];
+	size_t size_in_memory = size * nmemb + sizeof(size_t);
+	size_t* ptr = AllocateZeroPool(size_in_memory);
+	if (ptr != NULL)
+		*ptr++ = size_in_memory;
+	return ptr;
 }
 
 /* NB: As opposed to libc's realloc(), this realloc() always frees the old pointer */
 void* realloc(void* p, size_t new_size)
 {
+	size_t size_in_memory = new_size + sizeof(size_t);
 	size_t* ptr = (size_t*)p;
-
 	if (ptr == NULL)
 		return malloc(new_size);
 	/* Access the previous size, which was stored in malloc/calloc */
 	ptr = &ptr[-1];
 #ifdef __MAKEWITH_GNUEFI
-	ptr = ReallocatePool(ptr, (UINTN)*ptr, (UINTN)(new_size + sizeof(size_t)));
+	ptr = ReallocatePool(ptr, (UINTN)*ptr, (UINTN)(size_in_memory));
 #else
-	ptr = ReallocatePool((UINTN)*ptr, (UINTN)(new_size + sizeof(size_t)), ptr);
+	ptr = ReallocatePool((UINTN)*ptr, (UINTN)(size_in_memory), ptr);
 #endif
 	if (ptr != NULL)
-		*ptr++ = new_size;
+		*ptr++ = size_in_memory;
 	return ptr;
 }
 
