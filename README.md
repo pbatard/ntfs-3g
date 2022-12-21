@@ -1,7 +1,7 @@
 ntfs-3g UEFI NTFS driver
 ========================
 
-[![Build status](https://img.shields.io/github/workflow/status/pbatard/ntfs-3g/UEFI%20driver%20-%20Linux%20(gcc%20with%20EDK2)%20build.svg?style=flat-square)](https://github.com/pbatard/ntfs-3g/actions)
+[![Build status](https://img.shields.io/github/actions/workflow/status/pbatard/ntfs-3g/uefi-driver_linux.yml?style=flat-square)](https://github.com/pbatard/ntfs-3g/actions)
 [![Coverity Scan Build Status](https://img.shields.io/coverity/scan/23353.svg?style=flat-square)](https://scan.coverity.com/projects/pbatard-ntfs-3g)
 [![Release](https://img.shields.io/github/release-pre/pbatard/ntfs-3g.svg?style=flat-square)](https://github.com/pbatard/ntfs-3g/releases)
 [![Github stats](https://img.shields.io/github/downloads/pbatard/ntfs-3g/total.svg?style=flat-square)](https://github.com/pbatard/ntfs-3g/releases)
