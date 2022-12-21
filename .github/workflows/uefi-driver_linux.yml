@@ -39,7 +39,8 @@ jobs:
         fetch-depth: 0
     - name: Set version
       id: set_version
-      run: echo "::set-output name=version::$(git describe --tags --abbrev=0)"
+      # NB: The following only works if the shell is bash
+      run: echo "version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
     - name: Set up Linux environment
       run: sudo apt install -y ${{matrix.TARGET_PKGS}}
     - name: Install nasm ${{ env.NASM_VERSION }}
