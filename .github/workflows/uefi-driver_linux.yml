@@ -34,7 +34,7 @@ jobs:
 
     steps:
     - name: Check out repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
     - name: Set version
@@ -73,7 +73,7 @@ jobs:
     - name: Display SHA-256
       run: sha256sum *.efi
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: uefi-drivers
         path: ./*.efi
