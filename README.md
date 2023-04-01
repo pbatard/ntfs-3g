@@ -13,10 +13,10 @@ This repository is a fork of the [ntfs-3g project](https://github.com/tuxera/ntf
 that enables building ntfs-3g into a fully functional UEFI NTFS driver.
 
 The resulting driver, which includes both read and write capabilities, can be
-compiled with either Visual Studio 2019 (EDK2 or gnu-efi) or gcc (EDK2 only)
+compiled with either Visual Studio 2022 (EDK2 or gnu-efi) or gcc (EDK2 only)
 for all of the IA32, X64, ARM and AARCH64 UEFI architectures.
 
-If using [Visual Studio 2019](https://visualstudio.microsoft.com/vs/), the
+If using [Visual Studio 2022](https://visualstudio.microsoft.com/vs/), the
 driver can also be tested through [QEMU](https://www.qemu.org/).
 
 The changes that are applied on top of the ntfs-3g source can be found, as
@@ -62,9 +62,9 @@ export GCC5_RISCV64_PREFIX=riscv64-linux-gnu-
 
 ### Windows ([gnu-efi](https://sourceforge.net/p/gnu-efi/code/ci/master/tree/))
 
-This assumes that you have Visual Studio 2019 installed.
+This assumes that you have Visual Studio 2022 installed.
 
-Open the VS2019 solution file and build using the IDE.
+Open the VS2022 solution file and build using the IDE.
 
 If you have QEMU installed under `C:\Program Files\qemu\` you should also be
 able to test the driver for any of the supported architectures (IA32, X64, ARM
@@ -75,15 +75,16 @@ automatically by the test script.
 
 ### Windows ([EDK2](https://github.com/tianocore/edk2))
 
-This assumes that you have Visual Studio 2019 and the EDK2 installed.
-For this examples, we assume that EDK2 is installed in `D:\EDK2`.
+This assumes that you have Visual Studio 2022, EDK2 and Nasm installed.
+For this examples, we assume that EDK2 is installed in `D:\EDK2` and Nasm in `D:\Nasm`. 
 
 Open a command prompt at the top of this repository and issue:
 
 ```
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 set WORKSPACE=%cd%
 set EDK2_PATH=D:\EDK2
+set NASM_PREFIX=D:\Nasm\
 set PACKAGES_PATH=%WORKSPACE%;%EDK2_PATH%
 %EDK2_PATH%\edksetup.bat reconfig
 build -a X64 -b RELEASE -t VS2019 -p uefi-driver.dsc
@@ -108,4 +109,4 @@ a Shell command or during the execution of a UEFI application.
 
 This UEFI NTFS driver should comply with the UEFI specifications, and
 especially with sections 13.4 and 13.5 from 
-[version 2.8 Errata A of the specs](https://uefi.org/sites/default/files/resources/UEFI_Spec_2_8_A_Feb14.pdf).
+[version 2.10 of the specs](https://uefi.org/sites/default/files/resources/UEFI_Spec_2_10_Aug29.pdf).

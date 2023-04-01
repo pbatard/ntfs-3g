@@ -40,13 +40,13 @@ export GCC5_RISCV64_PREFIX=riscv64-linux-gnu-
 Windows (gnu-efi)
 -----------------
 
-This assumes that you have Visual Studio 2019 installed and a recent version of
+This assumes that you have Visual Studio 2022 installed and a recent version of
 the gnu-efi source from git://git.code.sf.net/p/gnu-efi/code in a 'gnu-efi'
 directory at the top of this project. If you used git to clone this project and
 it came with the gnu-efi submodule, you can just use the standard git submodule
 init commands to initialize it. If not, you need to install gnu-efi manually.
 
-With gnu-efi properly set up, you can simply open the VS2019 solution file and
+With gnu-efi properly set up, you can simply open the VS2022 solution file and
 build using the IDE.
 
 If you have QEMU installed under C:\Program Files\qemu\ you should also be
@@ -57,14 +57,16 @@ selected the relevant C++ components during Visual Studio installation.
 Windows (EDK2)
 --------------
 
-This assumes that you have Visual Studio 2019 and the EDK2 installed.
-For this examples, we assume that EDK2 is installed in D:\EDK2.
+This assumes that you have Visual Studio 2022, EDK2 and Nasm installed.
+For this examples, we assume that EDK2 is installed in D:\EDK2 and Nasm in
+D:\Nasm.
 
 Open a command prompt at the top of the ntfs-3g source directory and issue:
 
-"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 set WORKSPACE=%cd%
 set EDK2_PATH=D:\EDK2
+set NASM_PREFIX=D:\Nasm\
 set PACKAGES_PATH=%WORKSPACE%;%EDK2_PATH%
 %EDK2_PATH%\edksetup.bat reconfig
 build -a X64 -b RELEASE -t VS2019 -p uefi-driver.dsc
@@ -89,4 +91,4 @@ COMPLIANCE
 ==========
 
 This UEFI NTFS driver should comply with the UEFI specifications, and
-especially with sections 13.4 and 13.5 from version 2.8 Errata A of the specs.
+especially with sections 13.4 and 13.5 from version 2.10 of the specs.

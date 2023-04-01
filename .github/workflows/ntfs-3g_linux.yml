@@ -11,7 +11,7 @@ jobs:
         CC: [gcc, clang]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: install libgcrypt
       run: sudo apt install libgcrypt20-dev
     - name: configure
