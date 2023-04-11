@@ -1,6 +1,6 @@
 /* uefi_file.c - SimpleFileIo Interface */
 /*
- *  Copyright © 2014-2021 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2014-2023 Pete Batard <pete@akeo.ie>
  *  Based on iPXE's efi_driver.c and efi_file.c:
  *  Copyright © 2011,2013 Michael Brown <mbrown@fensystems.co.uk>.
  *
@@ -306,6 +306,12 @@ static INT32 DirHook(VOID* Data, CONST CHAR16* Name,
 	FS_ASSERT(NameLen < 256);
 
 	if (HookData->Info->Size < ((UINT64)NameLen + 1) * sizeof(CHAR16)) {
+		/*
+		 * Per specs: If the buffer is not large enough to hold the current directory
+		 * entry, EFI_BUFFER_TOO_SMALL is returned and Len is set to the size of the
+		 * buffer needed to read the entry.
+		 */
+		HookData->Info->Size = ((UINT64)NameLen + 1) * sizeof(CHAR16);
 		NtfsSetErrno(EFI_BUFFER_TOO_SMALL);
 		return -1;
 	}
@@ -342,16 +348,18 @@ FileReadDir(EFI_NTFS_FILE* File, UINTN* Len, VOID* Data)
 
 	HookData.Info->Size = *Len;
 	Status = NtfsReadDirectory(File, DirHook, &HookData);
+	*Len = (UINTN)HookData.Info->Size;
+
 	if (EFI_ERROR(Status)) {
 		if (Status == EFI_END_OF_FILE) {
 			*Len = 0;
 			return EFI_SUCCESS;
 		}
-		PrintStatusError(Status, L"Directory listing failed");
+		if (Status != EFI_BUFFER_TOO_SMALL)
+			PrintStatusError(Status, L"Directory listing failed");
 		return Status;
 	}
 
-	*Len = (UINTN)HookData.Info->Size;
 	return EFI_SUCCESS;
 }
 
