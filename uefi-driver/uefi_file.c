@@ -837,6 +837,9 @@ FSInstall(EFI_FS* This, EFI_HANDLE ControllerHandle)
 
 	PrintInfo(L"FSInstall: %s\n", This->DevicePathString);
 
+	/* FsListHead must be initialized before we install the protocol */
+	InitializeListHead(&FsListHead);
+
 	/* Install the simple file system protocol. */
 	Status = gBS->InstallMultipleProtocolInterfaces(&ControllerHandle,
 		&gEfiSimpleFileSystemProtocolGuid, &This->FileIoInterface,
@@ -845,8 +848,6 @@ FSInstall(EFI_FS* This, EFI_HANDLE ControllerHandle)
 		PrintStatusError(Status, L"Could not install simple file system protocol");
 		return Status;
 	}
-
-	InitializeListHead(&FsListHead);
 
 	return EFI_SUCCESS;
 }
