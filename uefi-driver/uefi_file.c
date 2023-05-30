@@ -192,7 +192,8 @@ out:
 		/* NB: This call only destroys the file if RefCount = 0 */
 		NtfsFreeFile(NewFile);
 	}
-	FreePool(Path);
+	if(Path != NULL)
+		FreePool(Path);
 	return Status;
 }
 
