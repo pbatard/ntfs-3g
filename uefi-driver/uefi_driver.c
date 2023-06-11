@@ -1,6 +1,6 @@
 /* uefi_driver.c - ntfs-3g UEFI filesystem driver */
 /*
- *  Copyright © 2014-2021 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2014-2023 Pete Batard <pete@akeo.ie>
  *  Based on iPXE's efi_driver.c and efi_file.c:
  *  Copyright © 2011,2013 Michael Brown <mbrown@fensystems.co.uk>
  *
@@ -108,8 +108,7 @@ static VOID
 FreeFsInstance(EFI_FS* Instance) {
 	if (Instance == NULL)
 		return;
-	if (Instance->DevicePathString != NULL)
-		FreePool(Instance->DevicePathString);
+	SafeFreePool(Instance->DevicePathString);
 	FreePool(Instance);
 }
 

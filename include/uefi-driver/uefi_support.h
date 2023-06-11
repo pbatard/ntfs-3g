@@ -1,6 +1,6 @@
 /* uefi_support.h - UEFI support declarations */
 /*
- *  Copyright © 2014-2021 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2014-2023 Pete Batard <pete@akeo.ie>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -136,6 +136,12 @@ static __inline UINTN _SafeStrSize(CONST CHAR16* String, CONST CHAR8* File,
 }
 
 #define SafeStrSize(s) _SafeStrSize(s, __FILE__, __LINE__)
+
+/*
+ * Secure FreePool that doesn't assert on NULL and sets the pointer
+ * passed as parameter to NULL after freeing it.
+ */
+#define SafeFreePool(p) if (p != NULL) { FreePool(p), p = NULL; }
 
 /*
  * EDK2 does not provide a StrDup call, so we define one.
