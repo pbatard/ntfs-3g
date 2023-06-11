@@ -1,6 +1,6 @@
 /* uefi_bridge.c - libntfs-3g interface for UEFI */
 /*
- *  Copyright © 2021 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2021-2023 Pete Batard <pete@akeo.ie>
  *
  *  Parts taken from lowntfs-3g.c:
  *  Copyright © 2005-2007 Yura Pakhuchiy
@@ -629,7 +629,7 @@ NtfsFreeFile(EFI_NTFS_FILE* File)
 		return;
 	/* Only destroy a file that has no refs */
 	if (File->RefCount <= 0) {
-		FreePool(File->Path);
+		SafeFreePool(File->Path);
 		FreePool(File);
 	}
 }
