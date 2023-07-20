@@ -36,7 +36,10 @@
 
 /* Not all platforms have this errno */
 #ifndef ENOMEDIUM
-#define ENOMEDIUM 159
+#define ENOMEDIUM       159
+#endif
+#ifndef EBADE
+#define EBADE           52
 #endif
 
 #define IS_DIR(ni)      (((ntfs_inode*)(ni))->mrec->flags & MFT_RECORD_IS_DIRECTORY)
@@ -95,7 +98,6 @@ static EFI_STATUS ErrnoToEfiStatus(VOID)
 	case EILSEQ:
 	case EINVAL:
 	case ENAMETOOLONG:
-	case EPROTOTYPE:
 		return EFI_INVALID_PARAMETER;
 	case EMFILE:
 	case EMLINK:
@@ -106,6 +108,8 @@ static EFI_STATUS ErrnoToEfiStatus(VOID)
 	case ENOMEM:
 	case ENOSR:
 		return EFI_OUT_OF_RESOURCES;
+	case EBADE:
+		return EFI_CRC_ERROR;
 	case EBADMSG:
 	case EISDIR:
 	case EIO:
@@ -113,6 +117,10 @@ static EFI_STATUS ErrnoToEfiStatus(VOID)
 	case ENOSTR:
 	case EPROTO:
 		return EFI_PROTOCOL_ERROR;
+	case EPROTOTYPE:
+		return EFI_INCOMPATIBLE_VERSION;
+	case EPROTONOSUPPORT:
+		return EFI_INVALID_LANGUAGE;
 	case EBUSY:
 	case ENODATA:
 		return EFI_NO_RESPONSE;
@@ -146,6 +154,8 @@ static EFI_STATUS ErrnoToEfiStatus(VOID)
 		return EFI_WRITE_PROTECTED;
 	case EPERM:
 		return EFI_SECURITY_VIOLATION;
+	case ENOTRECOVERABLE:
+		return EFI_COMPROMISED_DATA;
 	default:
 		return EFI_NO_MAPPING;
 	}
@@ -201,11 +211,13 @@ VOID NtfsSetErrno(EFI_STATUS Status)
 	case EFI_ICMP_ERROR:
 	case EFI_TFTP_ERROR:
 	case EFI_CRC_ERROR:
+		errno = EBADE; break;
 	case EFI_PROTOCOL_ERROR:
-	case EFI_INVALID_LANGUAGE:
 		errno = EPROTO; break;
+	case EFI_INVALID_LANGUAGE:
+		errno = EPROTONOSUPPORT; break;
 	case EFI_INCOMPATIBLE_VERSION:
-		errno = ENOEXEC; break;
+		errno = EPROTOTYPE; break;
 	case EFI_SECURITY_VIOLATION:
 		errno = EPERM; break;
 	case EFI_END_OF_MEDIA:
@@ -213,6 +225,7 @@ VOID NtfsSetErrno(EFI_STATUS Status)
 	case EFI_END_OF_FILE:
 		errno = ESPIPE; break;
 	case EFI_COMPROMISED_DATA:
+		errno = ENOTRECOVERABLE; break;
 	case EFI_NO_MAPPING:
 	default:
 		errno = EFAULT; break;
