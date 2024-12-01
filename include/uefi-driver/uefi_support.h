@@ -155,7 +155,7 @@ static __inline CHAR16* StrDup(CONST CHAR16* Src)
 	Len = (SafeStrLen(Src) + 1) * sizeof(CHAR16);
 	Dst = AllocatePool(Len);
 	if (Dst != NULL)
-		CopyMem(Dst, Src, Len);
+		CopyMem(Dst, (CHAR16*)Src, Len);
 	return Dst;
 }
 

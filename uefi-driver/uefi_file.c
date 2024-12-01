@@ -315,7 +315,7 @@ static INT32 DirHook(VOID* Data, CONST CHAR16* Name,
 		NtfsSetErrno(EFI_BUFFER_TOO_SMALL);
 		return -1;
 	}
-	CopyMem(HookData->Info->FileName, Name, NameLen * sizeof(CHAR16));
+	CopyMem(HookData->Info->FileName, (CHAR16*)Name, NameLen * sizeof(CHAR16));
 	HookData->Info->FileName[NameLen] = 0;
 	HookData->Info->Size = SIZE_OF_EFI_FILE_INFO + ((UINT64)NameLen + 1) * sizeof(CHAR16);
 

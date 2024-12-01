@@ -14,7 +14,7 @@ that enables building ntfs-3g into a fully functional UEFI NTFS driver.
 
 The resulting driver, which includes both read and write capabilities, can be
 compiled with either Visual Studio 2022 (EDK2 or gnu-efi) or gcc (EDK2 only)
-for all of the IA32, X64, ARM and AARCH64 UEFI architectures.
+for all of the IA32, X64, ARM, AARCH64 and LOONGARCH64 UEFI architectures.
 
 If using [Visual Studio 2022](https://visualstudio.microsoft.com/vs/), the
 driver can also be tested through [QEMU](https://www.qemu.org/).
@@ -30,7 +30,7 @@ The default UEFI driver provides read-write access to an NTFS volume.
 
 If you would rather compile a read-only version of this driver, you can
 either define the `FORCE_READONLY` macro in `include/uefi-driver/uefi-driver.h`
-or pass that macro as a compiler option (through '-D FORCE_READONLY=TRUE' if
+or pass that macro as a compiler option (through `-D FORCE_READONLY=TRUE` if
 using EDK2).
 
 ### Linux ([EDK2](https://github.com/tianocore/edk2))
