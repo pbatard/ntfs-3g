@@ -1,7 +1,7 @@
 ## @file
 #  NTFS Driver Module
 #
-#  Copyright (c) 2021, Pete Batard <pete@akeo.ie>
+#  Copyright (c) 2021-2024, Pete Batard <pete@akeo.ie>
 #
 #  SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -12,7 +12,7 @@
   PLATFORM_GUID                  = 6DF51CCF-47D8-4035-8F1B-049B72C6DECF
   PLATFORM_VERSION               = 1.3
   DSC_SPECIFICATION              = 0x00010005
-  SUPPORTED_ARCHITECTURES        = IA32|X64|EBC|ARM|AARCH64|RISCV64
+  SUPPORTED_ARCHITECTURES        = IA32|X64|EBC|ARM|AARCH64|RISCV64|LOONGARCH64
   OUTPUT_DIRECTORY               = Build
   BUILD_TARGETS                  = DEBUG|RELEASE|NOOPT
   SKUID_IDENTIFIER               = DEFAULT
@@ -31,6 +31,7 @@
 !if $(FORCE_READONLY) == TRUE
   *_*_*_CC_FLAGS                 = -DFORCE_READONLY
 !endif
+  MSFT:*_*_AARCH64_CC_FLAGS      = /GS-
 
 !include MdePkg/MdeLibs.dsc.inc
 
@@ -54,12 +55,11 @@
   DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf  
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
 
-[LibraryClasses.ARM, LibraryClasses.AARCH64, LibraryClasses.RISCV64]
-  NULL|ArmPkg/Library/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
-  NULL|MdePkg/Library/BaseStackCheckLib/BaseStackCheckLib.inf
+[LibraryClasses.ARM, LibraryClasses.AARCH64, LibraryClasses.RISCV64, LibraryClasses.LOONGARCH64]
+  NULL|MdePkg/Library/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
 
 [LibraryClasses.IA32, LibraryClasses.X64]
-!if $(TOOLCHAIN) == "VS2019"
+!if $(TOOLCHAIN) == "VS2022"
   NULL|.vs/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
 !endif
 

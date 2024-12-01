@@ -35,6 +35,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+// Disable fortified strings, as these are only available with glibc
+#if defined(__GNUC__) && defined(__fortify_function)
+#undef __fortify_function
+#endif
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>

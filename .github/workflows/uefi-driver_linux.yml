@@ -7,82 +7,99 @@ env:
   GCC5_ARM_PREFIX: arm-linux-gnueabi-
   GCC5_AARCH64_PREFIX: aarch64-linux-gnu-
   GCC5_RISCV64_PREFIX: riscv64-linux-gnu-
-  NASM_VERSION: 2.15.05
+  GCC5_LOONGARCH64_PREFIX: loongarch64-unknown-linux-gnu-
+  LOONGARCH64_TOOLCHAIN_TAG: 2024.11.01
+  LOONGARCH64_TOOLCHAIN_NAME: x86_64-cross-tools-loongarch64-binutils_2.43.1-gcc_14.2.0-glibc_2.40.tar.xz
 
 jobs:
-  Linux-UEFI-Build:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
+        arch: [X64, IA32, AARCH64, ARM, RISCV64, LOONGARCH64]
         include:
-        - TARGET_TYPE: x64
-          TARGET_ARCH: X64
-          TARGET_PKGS: python3-distutils uuid-dev
-        - TARGET_TYPE: ia32
-          TARGET_ARCH: IA32
-          TARGET_PKGS: gcc-multilib python3-distutils uuid-dev
-        - TARGET_TYPE: aa64
-          TARGET_ARCH: AARCH64
-          TARGET_PKGS: gcc-aarch64-linux-gnu python3-distutils uuid-dev
-        - TARGET_TYPE: arm
-          TARGET_ARCH: ARM
-          TARGET_PKGS: gcc-arm-linux-gnueabi python3-distutils uuid-dev
-        - TARGET_TYPE: riscv64
-          TARGET_ARCH: RISCV64
-          TARGET_PKGS: gcc-riscv64-linux-gnu python3-distutils uuid-dev
+        - arch: X64
+          short: x64
+          pkgs: nasm python3-setuptools uuid-dev
+        - arch: IA32
+          short: ia32
+          pkgs: gcc-multilib nasm python3-setuptools uuid-dev
+        - arch: AARCH64
+          short: aa64
+          pkgs: gcc-aarch64-linux-gnu python3-setuptools uuid-dev
+        - arch: ARM
+          short: arm
+          pkgs: gcc-arm-linux-gnueabi python3-setuptools uuid-dev
+        - arch: RISCV64
+          short: riscv64
+          pkgs: gcc-riscv64-linux-gnu python3-setuptools uuid-dev
+        - arch: LOONGARCH64
+          short: loongarch64
+          pkgs: gcc-multilib python3-setuptools uuid-dev
 
     steps:
     - name: Check out repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
     - name: Set version
       id: set_version
-      # NB: The following only works if the shell is bash
       run: echo "version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
-    - name: Set up Linux environment
+
+    - name: Install toolchain
       run: |
         sudo apt-get update
-        sudo apt-get install ${{matrix.TARGET_PKGS}}
-    - name: Install nasm ${{ env.NASM_VERSION }}
-      # https://edk2.groups.io/g/devel/topic/89637409#87359
-      if: matrix.TARGET_TYPE == 'x64' || matrix.TARGET_TYPE == 'ia32'
-      run: |
-        curl -O https://www.nasm.us/pub/nasm/releasebuilds/${{ env.NASM_VERSION }}/nasm-${{ env.NASM_VERSION }}.tar.bz2
-        tar -xjf nasm-${{ env.NASM_VERSION }}.tar.bz2
-        cd nasm-${{ env.NASM_VERSION }}
-        ./autogen.sh
-        ./configure --prefix=/usr/local/ 
-        make 
-        sudo make install
+        sudo apt-get install ${{ matrix.pkgs }}
+        if [[ "${{ matrix.arch }}" == "LOONGARCH64" ]]; then
+          curl -L -O https://github.com/loongson/build-tools/releases/download/${LOONGARCH64_TOOLCHAIN_TAG}/${LOONGARCH64_TOOLCHAIN_NAME}
+          tar -xJf ${LOONGARCH64_TOOLCHAIN_NAME}
+          echo "$PWD/cross-tools/bin" >> "$GITHUB_PATH"
+        fi
+
     - name: Fix missing Risc-V header
-      if: matrix.TARGET_TYPE == 'riscv64'
+      if: matrix.arch == 'RISCV64'
       run: sudo ln -s /usr/riscv64-linux-gnu/include/gnu/stubs-lp64d.h /usr/riscv64-linux-gnu/include/gnu/stubs-lp64.h
+
     - name: Set up EDK2
       run: |
         git clone --recursive https://github.com/tianocore/edk2.git
         make -C edk2/BaseTools
+
     - name: Build UEFI drivers
       run: |
         export WORKSPACE=$PWD
         export PACKAGES_PATH=$WORKSPACE:$WORKSPACE/edk2
         source edk2/edksetup.sh
-        build -a ${{matrix.TARGET_ARCH}} -b ${BUILD_TYPE} -t GCC5 -p uefi-driver.dsc -D FORCE_READONLY -D COMMIT_INFO=${GITHUB_SHA:0:8} -D DRIVER_VERSION=${{steps.set_version.outputs.version}}
-        mv $WORKSPACE/Build/${BUILD_TYPE}_GCC5/${{matrix.TARGET_ARCH}}/ntfs.efi $WORKSPACE/ntfs_${{matrix.TARGET_TYPE}}_ro.efi
-        build -a ${{matrix.TARGET_ARCH}} -b ${BUILD_TYPE} -t GCC5 -p uefi-driver.dsc -D COMMIT_INFO=${GITHUB_SHA:0:8} -D DRIVER_VERSION=${{steps.set_version.outputs.version}}
-        mv $WORKSPACE/Build/${BUILD_TYPE}_GCC5/${{matrix.TARGET_ARCH}}/ntfs.efi $WORKSPACE/ntfs_${{matrix.TARGET_TYPE}}.efi
+        build -a ${{ matrix.arch }} -b ${BUILD_TYPE} -t GCC5 -p uefi-driver.dsc -D FORCE_READONLY -D COMMIT_INFO=${GITHUB_SHA:0:8} -D DRIVER_VERSION=${{ steps.set_version.outputs.version }}
+        mv $WORKSPACE/Build/${BUILD_TYPE}_GCC5/${{ matrix.arch }}/ntfs.efi $WORKSPACE/ntfs_${{ matrix.short }}_ro.efi
+        build -a ${{ matrix.arch }} -b ${BUILD_TYPE} -t GCC5 -p uefi-driver.dsc -D COMMIT_INFO=${GITHUB_SHA:0:8} -D DRIVER_VERSION=${{ steps.set_version.outputs.version }}
+        mv $WORKSPACE/Build/${BUILD_TYPE}_GCC5/${{ matrix.arch }}/ntfs.efi $WORKSPACE/ntfs_${{ matrix.short }}.efi
+
     - name: Display SHA-256
       run: sha256sum *.efi
+
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: uefi-drivers
+        name: uefi-driver_${{ matrix.short }}
         path: ./*.efi
+
     - name: Create release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: ./*.efi
+
+  merge-artifacts:
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: Merge Artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: uefi-driver
+          delete-merged: true

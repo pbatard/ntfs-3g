@@ -3,20 +3,20 @@ name: ntfs-3g - Linux (gcc, Clang) build
 on: [push, pull_request]
 
 jobs:
-  Linux-Regular-Build:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-24.04
 
     strategy:    
       matrix:
         CC: [gcc, clang]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install libgcrypt
       run: sudo apt install libgcrypt20-dev
     - name: configure
       env:
-        CC: ${{matrix.CC}}
+        CC: ${{ matrix.CC }}
       run: |
         ./autogen.sh
         ./configure
