@@ -122,11 +122,7 @@ void* realloc(void* p, size_t new_size)
 		return malloc(new_size);
 	/* Access the previous size, which was stored in malloc/calloc */
 	ptr = &ptr[-1];
-#ifdef __MAKEWITH_GNUEFI
-	ptr = ReallocatePool(ptr, (UINTN)*ptr, (UINTN)(size_in_memory));
-#else
 	ptr = ReallocatePool((UINTN)*ptr, (UINTN)(size_in_memory), ptr);
-#endif
 	if (ptr != NULL)
 		*ptr++ = size_in_memory;
 	return ptr;
@@ -163,17 +159,9 @@ void* memset(void* s, int c, size_t n)
 void* memmove(void* dest, const void* src, size_t n)
 {
 	/* CopyMem() supports the handling of overlapped regions */
-	CopyMem(dest, src, n);
+	CopyMem(dest, (void*)src, n);
 	return dest;
 }
-
-/* Workaround for gcc's 'string_fortified.h: undefined reference to memmove' */
-#ifdef __GNUC__
-void* __builtin___memmove_chk (void* dest, const void* src, size_t len, size_t destlen)
-{
-	return memmove(dest, src, len);
-}
-#endif /* __GNUC__ */
 
 int memcmp(const void* s1, const void* s2, size_t n)
 {

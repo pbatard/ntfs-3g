@@ -7,26 +7,26 @@ env:
   EMAIL: pete@akeo.ie
 
 jobs:
-  Coverity-UEFI-Build:
+  build:
     runs-on: windows-latest
 
     steps:
     - name: Checkout repository and submodules
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: recursive
 
     - name: Download Coverity
       run: |
-        curl -d "token=${{secrets.COVERITY_SCAN_TOKEN}}&project=pbatard%2Fntfs-3g" -L https://scan.coverity.com/download/cxx/win64 -o cov-analysis-win64.zip
+        curl -d "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=pbatard%2Fntfs-3g" -L https://scan.coverity.com/download/cxx/win64 -o cov-analysis-win64.zip
         7z x cov-analysis-win64.zip
         del cov-analysis-win64.zip
         move cov-analysis-win64* cov-analysis-win64
 
     - name: Add Coverity to PATH
       shell: bash
-      run: echo "${{github.workspace}}/cov-analysis-win64/bin" >> $GITHUB_PATH
+      run: echo "${{ github.workspace }}/cov-analysis-win64/bin" >> $GITHUB_PATH
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.1
@@ -34,9 +34,9 @@ jobs:
     - name: Build with Coverity
       run: | 
         cov-configure --msvc
-        cov-build.exe --dir cov-int msbuild ${{env.SOLUTION_FILE_PATH}} /m /p:Configuration=Release,Platform=x64
+        cov-build.exe --dir cov-int msbuild ${{ env.SOLUTION_FILE_PATH }} /m /p:Configuration=Release,Platform=x64
 
     - name: Upload Coverity build for analysis
       run: |
         7z a -r cov-int.zip cov-int
-        curl --form email=${{env.EMAIL}} --form token=${{secrets.COVERITY_SCAN_TOKEN}} --form file=@cov-int.zip --form version="${{env.GITHUB_SHA}}" --form description="ntfs-3g" https://scan.coverity.com/builds?project=pbatard%2Fntfs-3g
+        curl --form email=${{ env.EMAIL }} --form token=${{ secrets.COVERITY_SCAN_TOKEN }} --form file=@cov-int.zip --form version="${{ env.GITHUB_SHA }}" --form description="ntfs-3g" https://scan.coverity.com/builds?project=pbatard%2Fntfs-3g
