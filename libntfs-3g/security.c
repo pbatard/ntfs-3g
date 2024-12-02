@@ -763,6 +763,7 @@ static le32 entersecurityattr(ntfs_volume *vol,
 			errno = EIO;
 		}
 	} else {
+		/* coverity[overflow_const] */
 		newkey = le32_to_cpu(keyid) + 1;
 		securid = cpu_to_le32(newkey);
 	}

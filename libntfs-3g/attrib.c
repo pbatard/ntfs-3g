@@ -235,6 +235,11 @@ s64 ntfs_get_attribute_value(const ntfs_volume *vol,
 			 * needed size, knowing that the whole attribute
 			 * size has been checked to be <= 0x40000.
 			 */
+			/* Fix a coverity warning */
+			if (total > sle64_to_cpu(a->data_size) || total > 0x40000) {
+				free(rl);
+				return 0;
+			}
 			intlth = (sle64_to_cpu(a->data_size) - total
 					+ vol->cluster_size - 1)
 					>> vol->cluster_size_bits;

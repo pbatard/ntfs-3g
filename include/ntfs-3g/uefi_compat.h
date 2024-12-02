@@ -1,7 +1,7 @@
 /*
  * uefi_compat.h - Compatibility settings for the NTFS UEFI driver
  *
- * Copyright (c) 2021 Pete Batard
+ * Copyright (c) 2021-2024 Pete Batard
  *
  * This program/include file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published
@@ -28,47 +28,36 @@
  */
 #include <errno.h>
 #include <inttypes.h>
-#include <limits.h>
 #include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-// Disable fortified strings, as these are only available with glibc
-#if defined(__GNUC__) && defined(__fortify_function)
-#undef __fortify_function
-#endif
-#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
-#include <wchar.h>
 
 #if defined(__MAKEWITH_GNUEFI)
 #include <efi.h>
-#define VA_LIST   va_list
-#define VA_START  va_start
-#define VA_END    va_end
+#define VA_LIST             va_list
+#define VA_START            va_start
+#define VA_END              va_end
 #else
 #include <Base.h>
 #endif
 
+#define HAVE_CLOCK_GETTIME  0
 #define HAVE_ERRNO_H        1
-#define HAVE_CLOCK_GETTIME  1
 #define HAVE_INTTYPES_H     1
-#define HAVE_INTTYPES_H     1
-#define HAVE_LIMITS_H       1
+#define HAVE_LIMITS_H       0
 #define HAVE_STDARG_H       1
-#define HAVE_STDBOOL_H      1
-#define HAVE_STDDEF_H       1
+#define HAVE_STDBOOL_H      0
+#define HAVE_STDDEF_H       0
 #define HAVE_STDINT_H       1
 #define HAVE_STDIO_H        1
-#define HAVE_STDLIB_H       1
+#define HAVE_STDLIB_H       0
 #define HAVE_SYS_STAT_H     1
 #define HAVE_SYS_TYPES_H    1
 #define HAVE_TIME_H         1
-#define HAVE_WCHAR_H        1
+#define HAVE_WCHAR_H        0
 
 /* Disable reparse plugins */
 #define DISABLE_PLUGINS     1
@@ -93,22 +82,26 @@
 /* Number of bits in a file offset, on hosts where this is settable. */
 #define _FILE_OFFSET_BITS   64
 
-/* Define to `__inline__' or `__inline' if that's what the C compiler
-   calls it, or to nothing if 'inline' is not supported under any name.  */
+/* Maximum value for a signed 32-bit integer */
+#define INT_MAX             2147483647
+
+/* Inline keyword definitions */
 #ifndef __cplusplus
-#define inline __inline
+#ifndef inline
+#define inline              __inline
+#endif
+#ifndef __inline__
+#define __inline__          __inline
+#endif
 #endif
 
 #ifdef _MSC_VER
-typedef unsigned int   dev_t;
-typedef unsigned long  uid_t;
-typedef unsigned long  gid_t;
-typedef unsigned long  pid_t;
-typedef unsigned short mode_t;
-typedef uint32_t       clockid_t;
-#ifndef __inline__
-#define __inline__     __inline
-#endif
+typedef unsigned int        dev_t;
+typedef unsigned long       uid_t;
+typedef unsigned long       gid_t;
+typedef unsigned long       pid_t;
+typedef unsigned short      mode_t;
+typedef uint32_t            clockid_t;
 #endif /* _MSC_VER */
 
 struct group {
