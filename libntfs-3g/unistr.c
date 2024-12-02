@@ -576,7 +576,7 @@ static int ntfs_utf16_to_utf8(const ntfschar *ins, const int ins_len,
 	 * so the size *without* the terminating null is limited to one less. */
 	size = utf16_to_utf8_size(ins, ins_len, outs_len - 1);
 
-	if (size < 0)
+	if (size < 0 || size > outs_len - 1)
 		goto out;
 
 	if (!*outs) {

@@ -428,6 +428,7 @@ static unsigned int ntfs_compress_block(const char *inbuf, const int bufsize,
 
 	if ((i >= bufsize) && (xout < (NTFS_SB_SIZE + 2))) {
 		/* Compressed.  */
+		/* coverity[overflow_const] */
 		outbuf[0] = (xout - 3) & 255;
 		outbuf[1] = 0xb0 + (((xout - 3) >> 8) & 15);
 	} else {
