@@ -604,7 +604,7 @@ static int ntfs_mft_bitmap_find_free_rec(ntfs_volume *vol, ntfs_inode *base_ni)
 		/* Cap size to pass_end. */
 		ofs = data_pos >> 3;
 		ll = ((pass_end + 7) >> 3) - ofs;
-		if (size > ll)
+		if (ll > 0 && size > ll)
 			size = ll;
 		ll = ntfs_attr_pread(mftbmp_na, ofs, size, buf);
 		if (ll < 0) {
