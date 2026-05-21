@@ -4,14 +4,14 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     strategy:    
       matrix:
         CC: [gcc, clang]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: install libgcrypt
       run: sudo apt install libgcrypt20-dev
     - name: configure
