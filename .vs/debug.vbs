@@ -82,7 +82,7 @@ QEMU_EXE   = "qemu-system-" & QEMU_ARCH & "w.exe"
 
 LOG_LEVEL  = 0
 If (CONF = "Debug") Then
-  LOG_LEVEL = 4
+  LOG_LEVEL = 5
 End If
 IMG_EXT    = ".vhd"
 IMG        = FS & IMG_EXT

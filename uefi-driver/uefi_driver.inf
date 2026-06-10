@@ -5,7 +5,7 @@
 #  It also produces the Simple File System protocol for the consumer
 #  to perform file and directory operations on the disk.
 #
-#  Copyright (c) 2021, Pete Batard <pete@akeo.ie>
+#  Copyright (c) 2021-2026 Pete Batard <pete@akeo.ie>
 #
 #  SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -90,6 +90,7 @@
 [Pcd]
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultLang
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultPlatformLang
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel
 
 [BuildOptions]
   *_*_IA32_CC_FLAGS       = -DFORMAT=efi-app-ia32
