@@ -141,7 +141,7 @@ runlist_element *ntfs_rl_extend(ntfs_attr *na, runlist_element *rl,
 			rl = &newrl[irl];
 		}
 	} else {
-		ntfs_log_error("Cannot extend unmapped runlist");
+		ntfs_log_error("Cannot extend unmapped runlist\n");
 		errno = EIO;
 		rl = (runlist_element*)NULL;
 	}
