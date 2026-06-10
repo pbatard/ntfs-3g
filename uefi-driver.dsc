@@ -1,7 +1,7 @@
 ## @file
 #  NTFS Driver Module
 #
-#  Copyright (c) 2021-2024, Pete Batard <pete@akeo.ie>
+#  Copyright (c) 2021-2026, Pete Batard <pete@akeo.ie>
 #
 #  SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -47,11 +47,19 @@
   BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
   UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
   PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
-  PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
+  PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
   MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
   UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
   UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
+!if $(TARGET) == DEBUG
+  # Prefer UefiDebugLibConOut over UefiDebugLibStdErr as some platforms silence StdErr.
+  DebugLib|MdePkg/Library/UefiDebugLibConOut/UefiDebugLibConOut.inf
+  # Alternatively, if you want Serial debug through a USB↔SER adapter, you can use something like:
+  # DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
+  # SerialPortLib|Pl2303Dxe/Pl2303SerialPortLib.inf
+!else
   DebugLib|MdePkg/Library/BaseDebugLibNull/BaseDebugLibNull.inf
+!endif
   DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf  
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
 
@@ -72,3 +80,18 @@
 
 [Components]
   uefi-driver/uefi_driver.inf
+
+[PcdsFixedAtBuild]
+  # DEBUG_PROPERTY_DEBUG_ASSERT_ENABLED         0x01
+  # DEBUG_PROPERTY_DEBUG_PRINT_ENABLED          0x02
+  # DEBUG_PROPERTY_DEBUG_CODE_ENABLED           0x04
+  # DEBUG_PROPERTY_ASSERT_BREAKPOINT_ENABLED    0x10
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x17
+  # DEBUG_ERROR                                    0x80000000
+  # DEBUG_WARN                                     0x00000002
+  # DEBUG_INFO                                     0x00000040
+  # DEBUG_VERBOSE                                  0x00400000
+  # DEBUG_FS                                       0x00000008 (ntfs-3g "DEBUG")
+  # DEBUG_EVENT                                    0x00080000 (ntfs-3g "TRACE")
+  # DEBUG_INIT                                     0x00000001 (ntfs-3g "ENTER/LEAVE")
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x8040004A

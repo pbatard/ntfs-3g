@@ -1,6 +1,6 @@
 /* uefi_support.h - UEFI support declarations */
 /*
- *  Copyright © 2014-2023 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2014-2026 Pete Batard <pete@akeo.ie>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <time.h>
 
 #include "uefi_driver.h"
+#include "uefi_logging.h"
 
 #ifndef _MSC_VER
 #if !defined(__GNUC__) || (__GNUC__ < 5)
@@ -74,10 +75,6 @@
 
 /* For safety, we set a a maximum size that strings shall not outgrow */
 #define STRING_MAX              (PATH_MAX + 2)
-
-/* Convenience assertion macros */
-#define FL_ASSERT(f, l, a)      if(!(a)) do { Print(L"*** ASSERT FAILED: %a(%d): %a ***\n", f, l, #a); while(1); } while(0)
-#define FS_ASSERT(a)            FL_ASSERT(__FILE__, __LINE__, a)
 
 /*
  * Secure string copy, that either uses the already secure version from
