@@ -3188,7 +3188,7 @@ find_attr_list_attr:
 
 			/* Not found?!? Absurd! */
 			errno = EIO;
-			ntfs_log_error("Attribute list wasn't found");
+			ntfs_log_error("Attribute list wasn't found\n");
 			return -1;
 		}
 	}
@@ -3602,7 +3602,7 @@ int ntfs_attr_inconsistent(const ATTR_RECORD *a, const MFT_REF mref)
 		case AT_INDEX_ALLOCATION :
 			if (!a->non_resident) {
 				ntfs_log_error("Corrupt index allocation"
-					" in MFT record %lld",
+					" in MFT record %lld\n",
 					(long long)inum);
 				errno = EIO;
 				ret = -1;
@@ -6907,7 +6907,7 @@ static int stuff_hole(ntfs_attr *na, const s64 pos)
 	if (!ret && NAttrNonResident(na)) {
 			/* does the hole span over several compression block ? */
 		if ((pos ^ na->initialized_size)
-				& ~(na->compression_block_size - 1)) {
+				& ~((s64)na->compression_block_size - 1)) {
 			begin_size = ((na->initialized_size - 1)
 					| (na->compression_block_size - 1))
 					+ 1 - na->initialized_size;
@@ -7178,7 +7178,7 @@ int ntfs_attr_remove(ntfs_inode *ni, const ATTR_TYPES type, ntfschar *name,
 	ntfs_log_trace("Entering\n");
 	
 	if (!ni) {
-		ntfs_log_error("%s: NULL inode pointer", __FUNCTION__);
+		ntfs_log_error("%s: NULL inode pointer\n", __FUNCTION__);
 		errno = EINVAL;
 		return -1;
 	}

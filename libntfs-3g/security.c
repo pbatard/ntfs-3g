@@ -4505,7 +4505,7 @@ int ntfs_open_secure(ntfs_volume *vol)
 		goto err;
 
 	if (ni->mft_no != FILE_Secure) {
-		ntfs_log_error("$Secure does not have expected inode number!");
+		ntfs_log_error("$Secure does not have expected inode number!\n");
 		errno = EINVAL;
 		goto err_close_ni;
 	}
