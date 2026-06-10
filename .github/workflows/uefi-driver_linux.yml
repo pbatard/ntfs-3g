@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 env:
   COMPILER: GCC
-  BUILD_TYPE: RELEASE
   EDK2_STABLE_TAG: edk2-stable202605
   GCC_AARCH64_PREFIX: aarch64-linux-gnu-
   GCC_RISCV64_PREFIX: riscv64-linux-gnu-
@@ -70,10 +69,12 @@ jobs:
         export WORKSPACE=$PWD
         export PACKAGES_PATH=$WORKSPACE:$WORKSPACE/edk2
         source edk2/edksetup.sh
-        build -a ${{ matrix.arch }} -b ${BUILD_TYPE} -t ${{ env.COMPILER }} -p uefi-driver.dsc -D FORCE_READONLY -D COMMIT_INFO=${GITHUB_SHA:0:8} -D DRIVER_VERSION=${{ steps.set_version.outputs.version }}
-        mv $WORKSPACE/Build/${BUILD_TYPE}_${{ env.COMPILER }}/${{ matrix.arch }}/ntfs.efi $WORKSPACE/ntfs_${{ matrix.short }}_ro.efi
-        build -a ${{ matrix.arch }} -b ${BUILD_TYPE} -t ${{ env.COMPILER }} -p uefi-driver.dsc -D COMMIT_INFO=${GITHUB_SHA:0:8} -D DRIVER_VERSION=${{ steps.set_version.outputs.version }}
-        mv $WORKSPACE/Build/${BUILD_TYPE}_${{ env.COMPILER }}/${{ matrix.arch }}/ntfs.efi $WORKSPACE/ntfs_${{ matrix.short }}.efi
+        build -a ${{ matrix.arch }} -b RELEASE -t ${{ env.COMPILER }} -p uefi-driver.dsc -D COMMIT_INFO=${GITHUB_SHA:0:8} -D DRIVER_VERSION=${{ steps.set_version.outputs.version }}
+        mv $WORKSPACE/Build/RELEASE_${{ env.COMPILER }}/${{ matrix.arch }}/ntfs.efi $WORKSPACE/ntfs_${{ matrix.short }}.efi
+        build -a ${{ matrix.arch }} -b RELEASE -t ${{ env.COMPILER }} -p uefi-driver.dsc -D FORCE_READONLY -D COMMIT_INFO=${GITHUB_SHA:0:8} -D DRIVER_VERSION=${{ steps.set_version.outputs.version }}
+        mv $WORKSPACE/Build/RELEASE_${{ env.COMPILER }}/${{ matrix.arch }}/ntfs.efi $WORKSPACE/ntfs_${{ matrix.short }}_ro.efi
+        build -a ${{ matrix.arch }} -b DEBUG -t ${{ env.COMPILER }} -p uefi-driver.dsc -D COMMIT_INFO=${GITHUB_SHA:0:8} -D DRIVER_VERSION=${{ steps.set_version.outputs.version }}
+        mv $WORKSPACE/Build/DEBUG_${{ env.COMPILER }}/${{ matrix.arch }}/ntfs.efi "$WORKSPACE/ntfs_${{ matrix.short }} (DEBUG).efi"
 
     - name: Display SHA-256
       run: sha256sum *.efi
@@ -81,7 +82,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v7
       with:
-        name: uefi-driver_${{ matrix.short }}
+        name: ntfs_${{ matrix.short }}
         path: ./*.efi
 
     - name: Create release
@@ -91,13 +92,3 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: ./*.efi
-
-  merge-artifacts:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v7
-        with:
-          name: uefi-driver
-          delete-merged: true

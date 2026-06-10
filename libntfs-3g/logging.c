@@ -4,7 +4,7 @@
  * Copyright (c) 2005 Richard Russon
  * Copyright (c) 2005-2008 Szabolcs Szakacsits
  * Copyright (c) 2010      Jean-Pierre Andre
- * Copyright (c) 2021      Pete Batard
+ * Copyright (c) 2021-2026 Pete Batard
  *
  * This program/include file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published
@@ -464,6 +464,14 @@ int ntfs_log_handler_null(const char* function __attribute__((unused)), const ch
 
 #ifdef UEFI_DRIVER
 
+#ifdef __MAKEWITH_GNUEFI
+#include "efilib.h"
+#include "efidebug.h"
+#else
+#include <Library/BaseLib.h>
+#include <Library/DebugLib.h>
+#endif
+
 #define LOG_LINE_LEN 512
 
 int ntfs_log_handler_uefi(const char* function __attribute__((unused)), const char* file __attribute__((unused)),
@@ -485,17 +493,31 @@ int ntfs_log_handler_uefi(const char* function __attribute__((unused)), const ch
 	ret = AsciiVSPrint(logbuf, LOG_LINE_LEN, ascii_format, args);
 	free(ascii_format);
 	if (ret > 0) {
-		ret = 0;
-		if (ntfs_log.flags & NTFS_LOG_FLAG_PREFIX)	/* Prefix the output */
-			ret += AsciiPrint("%a", ntfs_log_get_prefix(level));
-		if (ntfs_log.flags & NTFS_LOG_FLAG_FILENAME)	/* Source filename */
-			ret += AsciiPrint("%a ", file);
-		if (ntfs_log.flags & NTFS_LOG_FLAG_LINE)	/* Source line number */
-			ret += AsciiPrint("(%d) ", line);
+		if (ntfs_log.flags & NTFS_LOG_FLAG_PREFIX) {	/* Prefix the output */
+			ret += AsciiStrLen(ntfs_log_get_prefix(level));
+			DEBUG((0xFFFFFFFF, "%a", ntfs_log_get_prefix(level)));
+		}
+		if (ntfs_log.flags & NTFS_LOG_FLAG_FILENAME) {	/* Source filename */
+			ret += AsciiStrLen(file) + 1;
+			DEBUG((0xFFFFFFFF, "%a ", file));
+		}
+		if (ntfs_log.flags & NTFS_LOG_FLAG_LINE)	{ /* Source line number */
+			if (line >= 1000)
+				ret += 7;
+			else if (line >= 100)
+				ret += 6;
+			else if (line >= 10)
+				ret += 5;
+			else
+				ret += 4;
+			DEBUG((0xFFFFFFFF, "(%d) ", line));
+		}
 		if ((ntfs_log.flags & NTFS_LOG_FLAG_FUNCTION) || /* Source function */
-			(level & NTFS_LOG_LEVEL_TRACE) || (level & NTFS_LOG_LEVEL_ENTER))
-			ret += AsciiPrint("%a(): ", function);
-		ret += AsciiPrint(logbuf);
+			(level & NTFS_LOG_LEVEL_TRACE) || (level & NTFS_LOG_LEVEL_ENTER)) {
+			ret += AsciiStrLen(function) + 4;
+			DEBUG((0xFFFFFFFF, "%a(): ", function));
+		}
+		DEBUG((0xFFFFFFFF, logbuf));
 	}
 	return (int)ret;
 }

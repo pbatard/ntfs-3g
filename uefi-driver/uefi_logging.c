@@ -1,6 +1,6 @@
 /* uefi_logging.c - UEFI logging */
 /*
- *  Copyright © 2014-2021 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2014-2026 Pete Batard <pete@akeo.ie>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,18 +19,37 @@
 #include "uefi_bridge.h"
 #include "uefi_support.h"
 #include "uefi_logging.h"
+#include "uefi_compat.h"
 
 static UINTN EFIAPI PrintNone(IN CONST CHAR16 *fmt, ... ) { return 0; }
 Print_t PrintError    = PrintNone;
 Print_t PrintWarning  = PrintNone;
 Print_t PrintInfo     = PrintNone;
+Print_t PrintVerbose  = PrintNone;
 Print_t PrintDebug    = PrintNone;
-Print_t PrintExtra    = PrintNone;
 Print_t* PrintTable[] = { &PrintError, &PrintWarning, &PrintInfo,
-		&PrintDebug, &PrintExtra };
+		&PrintVerbose, &PrintDebug };
 
 /* Global driver verbosity level */
-UINTN LogLevel = DEFAULT_LOGLEVEL;
+UINTN LogLevel        = DEFAULT_LOGLEVEL;
+
+UINTN
+PrintDebugger(IN CONST CHAR16* Format, ...)
+{
+	STATIC CHAR16 UnicodeStr[1024];
+	STATIC CHAR8 Utf8Str[1024];
+	UINTN Ret = 0;
+	VA_LIST Marker;
+
+	VA_START(Marker, Format);
+	UnicodeVSPrint(UnicodeStr, sizeof(UnicodeStr), Format, Marker);
+	VA_END(Marker);
+
+	Ret = ToUtf8(UnicodeStr, Utf8Str, sizeof(Utf8Str));
+	if (Ret > 0)
+		DEBUG((0xFFFFFFFF, Utf8Str));
+	return Ret;
+}
 
 /**
  * Print status
@@ -40,19 +59,14 @@ UINTN LogLevel = DEFAULT_LOGLEVEL;
 VOID
 PrintStatus(EFI_STATUS Status)
 {
-#if defined(__MAKEWITH_GNUEFI)
-	CHAR16 StatusString[64];
-	StatusToString(StatusString, Status);
 	/* Make sure the Status is unsigned 32 bits */
-	Print(L": [%d] %s\n", (Status & 0x7FFFFFFF), StatusString);
-#else
-	Print(L": [%d]\n", (Status & 0x7FFFFFFF));
-#endif
+	DEBUG((0xFFFFFFFF, ": [%d] %r\n", (Status & 0x7FFFFFFF), (Status & 0x7FFFFFFF)));
 }
 
 /*
  * You can control the verbosity of the driver output by setting the shell environment
- * variable FS_LOGGING to one of the values defined in the FS_LOGLEVEL constants
+ * variable FS_LOGGING to one of the values defined in the FS_LOGLEVEL constants. Or,
+ * if that variable is not defined, we set it from PcdDebugPrintErrorLevel (for EDK2).
  */
 VOID
 SetLogging(VOID)
@@ -62,18 +76,42 @@ SetLogging(VOID)
 	CHAR16 LogVar[4] = { 0 };
 	UINTN i, LogVarSize = sizeof(LogVar);
 
+#if defined(__MAKEWITH_GNUEFI)
+	/* gnu-efi's default of ST->StdErr may not always produce output. */
+	LibRuntimeDebugOut = ST->ConOut;
+#endif
+
 	Status = gRT->GetVariable(L"FS_LOGGING", &ShellVariable, NULL, &LogVarSize, LogVar);
 	if (Status == EFI_SUCCESS) {
-		LogLevel = 0;
+		LogLevel = FS_LOGLEVEL_NONE;
 		/* The log variable should only ever be a single decimal digit */
 		if ((LogVar[1] == 0) && (LogVar[0] >= L'0') && (LogVar[0] <= L'9'))
 			LogLevel = LogVar[0] - L'0';
 	}
+#if !defined(__MAKEWITH_GNUEFI)
+	else {
+		const UINT32 PrintErrorLevel = PcdGet32(PcdDebugPrintErrorLevel);
+		if (PrintErrorLevel & DEBUG_ERROR)
+			LogLevel = FS_LOGLEVEL_ERROR;
+		if (PrintErrorLevel & DEBUG_WARN)
+			LogLevel = FS_LOGLEVEL_WARNING;
+		if (PrintErrorLevel & DEBUG_INFO)
+			LogLevel = FS_LOGLEVEL_INFO;
+		if (PrintErrorLevel & DEBUG_VERBOSE)
+			LogLevel = FS_LOGLEVEL_VERBOSE;
+		if (PrintErrorLevel & DEBUG_FS)
+			LogLevel = FS_LOGLEVEL_DEBUG;
+		if (PrintErrorLevel & DEBUG_EVENT)
+			LogLevel = FS_LOGLEVEL_TRACE;
+		if (PrintErrorLevel & DEBUG_INIT)
+			LogLevel = FS_LOGLEVEL_ENTER_LEAVE;
+	}
+#endif
 
 	for (i = 0; i < ARRAYSIZE(PrintTable); i++)
-		*PrintTable[i] = (i < LogLevel)?(Print_t)Print:(Print_t)PrintNone;
+		*PrintTable[i] = (i < LogLevel)?(Print_t)PrintDebugger:(Print_t)PrintNone;
 
 	NtfsSetLogger(LogLevel);
 
-	PrintExtra(L"LogLevel = %d\n", LogLevel);
+	PrintVerbose(L"LogLevel = %d\n", LogLevel);
 }

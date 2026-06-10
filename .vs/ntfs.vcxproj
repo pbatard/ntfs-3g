@@ -141,7 +141,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)\include\uefi-driver;$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\gnu-efi\inc</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EFI_DEBUG;UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>false</ExceptionHandling>
       <CompileAs>CompileAsC</CompileAs>
       <WarningLevel>Level3</WarningLevel>
@@ -171,7 +171,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)\include\uefi-driver;$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\gnu-efi\inc</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EFI_DEBUG;UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>false</ExceptionHandling>
       <CompileAs>CompileAsC</CompileAs>
       <WarningLevel>Level3</WarningLevel>
@@ -200,7 +200,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(SolutionDir)\include\uefi-driver;$(SolutionDir)\include\ntfs-3g;$(SolutionDir)\gnu-efi\inc</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>EFI_DEBUG;UEFI_DRIVER;_CRT_SECURE_NO_WARNINGS;_NO_CRT_STDIO_INLINE;_OFF_T_DEFINED;_off_t=int64_t;off_t=int64_t;__MAKEWITH_GNUEFI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>false</ExceptionHandling>
       <CompileAs>CompileAsC</CompileAs>
       <WarningLevel>Level3</WarningLevel>

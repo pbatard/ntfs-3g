@@ -1,6 +1,6 @@
 /* uefi_file.c - SimpleFileIo Interface */
 /*
- *  Copyright © 2014-2023 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2014-2026 Pete Batard <pete@akeo.ie>
  *  Based on iPXE's efi_driver.c and efi_file.c:
  *  Copyright © 2011,2013 Michael Brown <mbrown@fensystems.co.uk>.
  *
@@ -100,7 +100,7 @@ FileOpen(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
 		PrintInfo(L"  Reopening %s\n", File->IsRoot ? L"<ROOT>" : File->Path);
 		File->RefCount++;
 		File->FileSystem->TotalRefCount++;
-		PrintExtra(L"TotalRefCount = %d\n", File->FileSystem->TotalRefCount);
+		PrintVerbose(L"TotalRefCount = %d\n", File->FileSystem->TotalRefCount);
 		/* Return current handle, with the proper access mode */
 		*New = (Mode & EFI_FILE_MODE_WRITE) ? &File->EfiFileRW : &File->EfiFileRO;
 		PrintInfo(L"  RET: " PERCENT_P L"\n", (UINTN)*New);
@@ -181,7 +181,7 @@ FileOpen(EFI_FILE_HANDLE This, EFI_FILE_HANDLE* New,
 
 	NewFile->RefCount++;
 	File->FileSystem->TotalRefCount++;
-	PrintExtra(L"TotalRefCount = %d\n", File->FileSystem->TotalRefCount);
+	PrintVerbose(L"TotalRefCount = %d\n", File->FileSystem->TotalRefCount);
 	/* Return a different handle according to the desired file mode */
 	*New = (Mode & EFI_FILE_MODE_WRITE) ? &NewFile->EfiFileRW : &NewFile->EfiFileRO;
 	PrintInfo(L"  RET: " PERCENT_P L"\n", (UINTN)*New);
@@ -229,7 +229,7 @@ FileClose(EFI_FILE_HANDLE This)
 
 	/* If there are no more files open on the volume, unmount it */
 	FileSystem->TotalRefCount--;
-	PrintExtra(L"TotalRefCount = %d\n", FileSystem->TotalRefCount);
+	PrintVerbose(L"TotalRefCount = %d\n", FileSystem->TotalRefCount);
 	if (FileSystem->TotalRefCount <= 0) {
 		PrintInfo(L"Last file instance: Unmounting volume\n");
 		NtfsUnmountVolume(FileSystem);
@@ -264,7 +264,7 @@ FileDelete(EFI_FILE_HANDLE This)
 
 	File->RefCount--;
 	FileSystem->TotalRefCount--;
-	PrintExtra(L"TotalRefCount = %d\n", FileSystem->TotalRefCount);
+	PrintVerbose(L"TotalRefCount = %d\n", FileSystem->TotalRefCount);
 
 	/* No need to close the file, NtfsDeleteFile will do it */
 
@@ -376,7 +376,7 @@ FileRead(EFI_FILE_HANDLE This, UINTN* Len, VOID* Data)
 {
 	EFI_NTFS_FILE* File = BASE_FILE(This);
 
-	PrintExtra(L"Read(" PERCENT_P L"|'%s', %d) %s\n", (UINTN)This, File->Path,
+	PrintVerbose(L"Read(" PERCENT_P L"|'%s', %d) %s\n", (UINTN)This, File->Path,
 		*Len, File->IsDir ? L"<DIR>" : L"");
 
 	if (File->NtfsInode == NULL)
@@ -409,7 +409,7 @@ FileWrite(EFI_FILE_HANDLE This, UINTN* Len, VOID* Data)
 {
 	EFI_NTFS_FILE* File = BASE_FILE(This);
 
-	PrintExtra(L"Write(" PERCENT_P L"|'%s', %d) %s\n", (UINTN)This, File->Path,
+	PrintVerbose(L"Write(" PERCENT_P L"|'%s', %d) %s\n", (UINTN)This, File->Path,
 		*Len, File->IsDir ? L"<DIR>" : L"");
 
 	if (File->NtfsInode == NULL)
@@ -533,7 +533,7 @@ FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 	/* Determine information to return */
 	if (CompareMem(Type, &gEfiFileInfoGuid, sizeof(*Type)) == 0) {
 
-		PrintExtra(L"Get regular file information\n");
+		PrintVerbose(L"Get regular file information\n");
 
 		Size = SafeStrSize(File->BaseName);
 		FS_ASSERT(Size >= sizeof(CHAR16));
@@ -557,7 +557,7 @@ FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 
 	} else if (CompareMem(Type, &gEfiFileSystemInfoGuid, sizeof(*Type)) == 0) {
 
-		PrintExtra(L"Get file system information\n");
+		PrintVerbose(L"Get file system information\n");
 
 		Size = (File->FileSystem->NtfsVolumeLabel == NULL) ?
 			sizeof(CHAR16) : SafeStrSize(File->FileSystem->NtfsVolumeLabel);
@@ -599,7 +599,7 @@ FileGetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN* Len, VOID* Data)
 
 	} else if (CompareMem(Type, &gEfiFileSystemVolumeLabelInfoIdGuid, sizeof(*Type)) == 0) {
 
-		PrintExtra(L"Get volume label\n");
+		PrintVerbose(L"Get volume label\n");
 
 		/* Per specs, only valid for root */
 		if (!File->IsRoot)
@@ -658,7 +658,7 @@ FileSetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN Len, VOID* Data)
 		return EFI_DEVICE_ERROR;
 
 	if (CompareMem(Type, &gEfiFileInfoGuid, sizeof(*Type)) == 0) {
-		PrintExtra(L"Set regular file information\n");
+		PrintVerbose(L"Set regular file information\n");
 		if ((Len < SIZE_OF_EFI_FILE_INFO + sizeof(CHAR16)) ||
 			(StrSize(Info->FileName) > Len - SIZE_OF_EFI_FILE_INFO))
 			return EFI_BAD_BUFFER_SIZE;
@@ -669,7 +669,7 @@ FileSetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN Len, VOID* Data)
 			PrintStatusError(Status, L"Could not set file info");
 		return Status;
 	} else if (CompareMem(Type, &gEfiFileSystemInfoGuid, sizeof(*Type)) == 0) {
-		PrintExtra(L"Set volume label (FS)\n");
+		PrintVerbose(L"Set volume label (FS)\n");
 		if (!File->IsRoot)
 			return EFI_ACCESS_DENIED;
 		if ((Len < SIZE_OF_EFI_FILE_SYSTEM_INFO + sizeof(CHAR16)) ||
@@ -678,7 +678,7 @@ FileSetInfo(EFI_FILE_HANDLE This, EFI_GUID* Type, UINTN Len, VOID* Data)
 		return NtfsRenameVolume(File->FileSystem->NtfsVolume,
 			FSInfo->VolumeLabel, (Len - SIZE_OF_EFI_FILE_SYSTEM_INFO) / sizeof(CHAR16));
 	} else if (CompareMem(Type, &gEfiFileSystemVolumeLabelInfoIdGuid, sizeof(*Type)) == 0) {
-		PrintExtra(L"Set volume label (VL)\n");
+		PrintVerbose(L"Set volume label (VL)\n");
 		if (!File->IsRoot)
 			return EFI_ACCESS_DENIED;
 		if (Len < sizeof(CHAR16) || StrSize(VLInfo->VolumeLabel) > Len)
@@ -791,7 +791,7 @@ FileOpenVolume(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* This, EFI_FILE_HANDLE* Root)
 	/* Increase RefCounts (which should NOT expected to be 0) */
 	RootFile->RefCount++;
 	FSInstance->TotalRefCount++;
-	PrintExtra(L"TotalRefCount = %d\n", FSInstance->TotalRefCount);
+	PrintVerbose(L"TotalRefCount = %d\n", FSInstance->TotalRefCount);
 
 	/* Return the root handle */
 	*Root = (EFI_FILE_HANDLE)RootFile;

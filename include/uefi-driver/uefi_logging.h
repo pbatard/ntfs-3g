@@ -1,6 +1,6 @@
 /* uefi_logging.h - UEFI logging declarations */
 /*
- *  Copyright © 2014-2021 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2014-2026 Pete Batard <pete@akeo.ie>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,9 +20,12 @@
 
 #ifdef __MAKEWITH_GNUEFI
 #include <efi.h>
+#include <lib.h>
+#include <efidebug.h>
 #else
 #include <Base.h>
 #include <Uefi.h>
+#include <Library/DebugLib.h>
 #endif /* __MAKEWITH_GNUEFI */
 
 /* Same as gShellVariableGuid from EDK2 (which gnu-efi doesn't have) */
@@ -38,8 +41,10 @@ extern UINTN LogLevel;
 #define FS_LOGLEVEL_ERROR       1
 #define FS_LOGLEVEL_WARNING     2
 #define FS_LOGLEVEL_INFO        3
-#define FS_LOGLEVEL_DEBUG       4
-#define FS_LOGLEVEL_EXTRA       5
+#define FS_LOGLEVEL_VERBOSE     4
+#define FS_LOGLEVEL_DEBUG       5
+#define FS_LOGLEVEL_TRACE       6
+#define FS_LOGLEVEL_ENTER_LEAVE 7
 
 #if !defined(DEFAULT_LOGLEVEL)
 #define DEFAULT_LOGLEVEL        FS_LOGLEVEL_NONE
@@ -48,14 +53,19 @@ extern UINTN LogLevel;
 /* Print an error message along with a human readable EFI status code */
 #define PrintStatusError(Status, Format, ...) \
 	do { if (LogLevel >= FS_LOGLEVEL_ERROR) { \
-		 Print(Format, ##__VA_ARGS__); PrintStatus(Status); } } while(0)
+		 PrintDebugger(Format, ##__VA_ARGS__); PrintStatus(Status); } } while(0)
+
+/* Convenience assertion macros */
+#define FL_ASSERT(f, l, a)      if(!(a)) do { PrintDebugger(L"*** ASSERT FAILED: %a(%d): %a ***\n", f, l, #a); while(1); } while(0)
+#define FS_ASSERT(a)            FL_ASSERT(__FILE__, __LINE__, a)
 
 typedef UINTN(EFIAPI* Print_t)  (IN CONST CHAR16* fmt, ...);
 extern Print_t PrintError;
 extern Print_t PrintWarning;
 extern Print_t PrintInfo;
+extern Print_t PrintVerbose;
 extern Print_t PrintDebug;
-extern Print_t PrintExtra;
 
 extern VOID SetLogging(VOID);
 extern VOID PrintStatus(EFI_STATUS Status);
+extern UINTN PrintDebugger(IN CONST CHAR16* Format, ...);

@@ -40,6 +40,7 @@ typedef INT32(*NTFS_DIRHOOK)(VOID* HookData, CONST CHAR16* Name,
 	CONST INT32 NameLen, CONST INT32 NameType, CONST INT64 Pos,
 	CONST UINT64 MRef, CONST UINT32 DtType);
 
+UINTN ToUtf8(CONST CHAR16* Src, CHAR8* Dst, UINTN DstSize);
 VOID NtfsSetErrno(EFI_STATUS Status);
 VOID NtfsSetLogger(UINTN LogLevel);
 VOID NtfsGetEfiTime(EFI_NTFS_FILE* File, EFI_TIME* Time, INTN Type);
