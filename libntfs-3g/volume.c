@@ -1991,7 +1991,7 @@ int ntfs_volume_rename(ntfs_volume *vol, const ntfschar *label, int label_len)
 			else if (written != label_len) {
 				err = EIO;
 				ntfs_log_error("Partial write when writing "
-					"$VOLUME_NAME data.");
+					"$VOLUME_NAME data.\n");
 				goto err_out;
 
 			}

@@ -611,7 +611,7 @@ out:
 	vol->free_clusters += nr_freed; 
 	if (NVolFreeSpaceKnown(vol)
 	    && (vol->free_clusters > vol->nr_clusters))
-		ntfs_log_error("Too many free clusters (%lld > %lld)!",
+		ntfs_log_error("Too many free clusters (%lld > %lld)!\n",
 			       (long long)vol->free_clusters, 
 			       (long long)vol->nr_clusters);
 	return ret;
@@ -647,7 +647,7 @@ int ntfs_cluster_free_basic(ntfs_volume *vol, s64 lcn, s64 count)
 out:
 	vol->free_clusters += nr_freed;
 	if (vol->free_clusters > vol->nr_clusters)
-		ntfs_log_error("Too many free clusters (%lld > %lld)!",
+		ntfs_log_error("Too many free clusters (%lld > %lld)!\n",
 			       (long long)vol->free_clusters, 
 			       (long long)vol->nr_clusters);
 	return ret;
@@ -770,7 +770,7 @@ int ntfs_cluster_free(ntfs_volume *vol, ntfs_attr *na, VCN start_vcn, s64 count)
 out:
 	vol->free_clusters += nr_freed ; 
 	if (vol->free_clusters > vol->nr_clusters)
-		ntfs_log_error("Too many free clusters (%lld > %lld)!",
+		ntfs_log_error("Too many free clusters (%lld > %lld)!\n",
 			       (long long)vol->free_clusters, 
 			       (long long)vol->nr_clusters);
 leave:	
