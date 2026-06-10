@@ -1,6 +1,6 @@
 /* uefi_driver.h - ntfs-3g UEFI filesystem driver */
 /*
- *  Copyright © 2021 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2021-2026 Pete Batard <pete@akeo.ie>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 
 #include <efi.h>
 #include <efilib.h>
-#include <efidebug.h>
 
 #else /* __MAKEWITH_GNUEFI */
 

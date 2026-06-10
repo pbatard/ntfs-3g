@@ -1,6 +1,6 @@
 /* uefi_bridge.c - libntfs-3g interface for UEFI */
 /*
- *  Copyright © 2021-2023 Pete Batard <pete@akeo.ie>
+ *  Copyright © 2021-2026 Pete Batard <pete@akeo.ie>
  *
  *  Parts taken from lowntfs-3g.c:
  *  Copyright © 2005-2007 Yura Pakhuchiy
@@ -44,6 +44,12 @@
 
 #define IS_DIR(ni)      (((ntfs_inode*)(ni))->mrec->flags & MFT_RECORD_IS_DIRECTORY)
 #define IS_DIRTY(ni)    (NInoDirty((ntfs_inode*)(ni)) || NInoAttrListDirty((ntfs_inode*)(ni)))
+
+UINTN ToUtf8(CONST CHAR16* Src, CHAR8* Dst, UINTN DstSize)
+{
+	int sz = ntfs_ucstombs(Src, (const int)SafeStrLen(Src), &Dst, (int)DstSize);
+	return (sz > 0) ? (UINTN)sz : 0;
+}
 
 static inline int _to_utf8(CONST CHAR16* Src, char** dst, const char* function)
 {
@@ -277,11 +283,15 @@ NtfsSetLogger(UINTN Level)
 	if (Level >= FS_LOGLEVEL_WARNING)
 		levels |= NTFS_LOG_LEVEL_WARNING;
 	if (Level >= FS_LOGLEVEL_INFO)
-		levels |= NTFS_LOG_LEVEL_INFO | NTFS_LOG_LEVEL_VERBOSE | NTFS_LOG_LEVEL_PROGRESS;
+		levels |= NTFS_LOG_LEVEL_INFO | NTFS_LOG_LEVEL_QUIET;
+	if (Level >= FS_LOGLEVEL_VERBOSE)
+		levels |= NTFS_LOG_LEVEL_VERBOSE | NTFS_LOG_LEVEL_PROGRESS;
 	if (Level >= FS_LOGLEVEL_DEBUG)
-		levels |= NTFS_LOG_LEVEL_DEBUG | NTFS_LOG_LEVEL_QUIET;
-	if (Level >= FS_LOGLEVEL_EXTRA)
+		levels |= NTFS_LOG_LEVEL_DEBUG;
+	if (Level >= FS_LOGLEVEL_TRACE)
 		levels |= NTFS_LOG_LEVEL_TRACE;
+	if (Level >= FS_LOGLEVEL_ENTER_LEAVE)
+		levels |= NTFS_LOG_LEVEL_ENTER | NTFS_LOG_LEVEL_LEAVE;
 
 	ntfs_log_clear_flags(UINT32_MAX);
 	/* If needed, NTFS_LOG_FLAG_FILENAME | NTFS_LOG_FLAG_LINE can be added */
@@ -823,7 +833,7 @@ NtfsGetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info, CONST UINT64 MRef, BOO
 			NeedClose = TRUE;
 		}
 	} else
-		PrintExtra(L"NtfsGetInfo for inode: %lld\n", ni->mft_no);
+		PrintVerbose(L"NtfsGetInfo for inode: %lld\n", ni->mft_no);
 
 	if (ni == NULL)
 		return EFI_NOT_FOUND;
@@ -1308,7 +1318,7 @@ NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info, BOOLEAN ReadOnly)
 	ntfs_attr* na;
 	int r;
 
-	PrintExtra(L"NtfsSetInfo for inode: %lld\n", ni->mft_no);
+	PrintVerbose(L"NtfsSetInfo for inode: %lld\n", ni->mft_no);
 
 	/* Per UEFI specs, trying to change type should return access denied */
 	if ((!IS_DIR(ni) && (Info->Attribute & EFI_FILE_DIRECTORY)) ||

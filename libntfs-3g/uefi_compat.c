@@ -1,7 +1,7 @@
 /*
  * uefi_compat.c - Definition of standard function calls for UEFI.
  *
- * Copyright © 2021 Pete Batard <pete@akeo.ie>
+ * Copyright © 2021-2026 Pete Batard <pete@akeo.ie>
  *
  * This program/include file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published
@@ -407,6 +407,11 @@ char* strerror(int errnum)
 		return "Directory not empty (ENOTEMPTY)";
 	case EILSEQ:
 		return "Illegal byte sequence (EILSEQ)";
+	case ENOTSUP:
+#ifdef _MSC_VER
+	case EOPNOTSUPP:
+#endif
+		return "Operation not supported (ENOTSUP)";
 	default:
 		errnum &= 0xff;
 		default_message[19] = (errnum / 100) + '0';
