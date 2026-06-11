@@ -347,6 +347,8 @@ NtfsLookup(EFI_NTFS_FILE* File, UINT64 Inum, BOOLEAN IgnoreSelf)
 	LookupEntry* Entry;
 	ntfs_inode* ni;
 
+	if (ListHead == NULL)
+		return NULL;
 	for (Entry = (LookupEntry*)ListHead->ForwardLink;
 		Entry != ListHead;
 		Entry = (LookupEntry*)Entry->ForwardLink) {
@@ -396,8 +398,11 @@ static VOID
 NtfsLookupAdd(EFI_NTFS_FILE* File)
 {
 	LIST_ENTRY* ListHead = &File->FileSystem->LookupListHead;
-	LookupEntry* Entry = AllocatePool(sizeof(LookupEntry));
+	LookupEntry* Entry;
 
+	if (ListHead == NULL)
+		return;
+	Entry = AllocatePool(sizeof(LookupEntry));
 	if (Entry) {
 		Entry->File = File;
 		InsertTailList(ListHead, (LIST_ENTRY*)Entry);
@@ -413,6 +418,8 @@ NtfsLookupRem(EFI_NTFS_FILE* File)
 	LookupEntry* ListHead = (LookupEntry*)&File->FileSystem->LookupListHead;
 	LookupEntry* Entry;
 
+	if (ListHead == NULL)
+		return;
 	for (Entry = (LookupEntry*)ListHead->ForwardLink;
 		Entry != ListHead;
 		Entry = (LookupEntry*)Entry->ForwardLink) {
@@ -425,19 +432,24 @@ NtfsLookupRem(EFI_NTFS_FILE* File)
 }
 
 /*
- * Clear the lookup list and free all allocated resources
+ * Clear the lookup list and (optionally) free allocated resources
  */
 static VOID
-NtfsLookupFree(LIST_ENTRY* List)
+NtfsLookupClear(LIST_ENTRY* List, BOOLEAN Free)
 {
 	LookupEntry *ListHead = (LookupEntry*)List, *Entry;
 
+	if (ListHead == NULL)
+		return;
 	for (Entry = (LookupEntry*)ListHead->ForwardLink;
 		Entry != ListHead;
 		Entry = (LookupEntry*)Entry->ForwardLink) {
 		RemoveEntryList((LIST_ENTRY*)Entry);
-		FreePool(Entry);
+		if (Free)
+			FreePool(Entry);
 	}
+	ListHead->ForwardLink = NULL;
+	ListHead->BackLink = NULL;
 }
 
 /*
@@ -574,16 +586,25 @@ NtfsMountVolume(EFI_FS* FileSystem)
 }
 
 /*
- * Unmount an NTFS volume and free allocated resources
+ * Unmount an NTFS volume and free allocated resources.
  */
 EFI_STATUS
 NtfsUnmountVolume(EFI_FS* FileSystem)
 {
+	if (--FileSystem->MountCount > 0)
+		return EFI_SUCCESS;
+	if (FileSystem->MountCount < 0) {
+		FileSystem->MountCount = 0;
+		return EFI_INVALID_PARAMETER;
+	}
+
 	ntfs_umount(FileSystem->NtfsVolume, FALSE);
 
 	PrintInfo(L"Unmounted volume '%s'\n", FileSystem->NtfsVolumeLabel);
-	NtfsLookupFree(&FileSystem->LookupListHead);
+	/* Only deallocate resources if we don't have dangling file handles */
+	NtfsLookupClear(&FileSystem->LookupListHead, (FileSystem->TotalRefCount <= 0));
 	free(FileSystem->NtfsVolumeLabel);
+	FileSystem->NtfsVolume = NULL;
 	FileSystem->NtfsVolumeLabel = NULL;
 	FileSystem->MountCount = 0;
 	FileSystem->TotalRefCount = 0;
