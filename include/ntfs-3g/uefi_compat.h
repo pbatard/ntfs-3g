@@ -1,7 +1,7 @@
 /*
  * uefi_compat.h - Compatibility settings for the NTFS UEFI driver
  *
- * Copyright (c) 2021-2024 Pete Batard
+ * Copyright (c) 2021-2026 Pete Batard
  *
  * This program/include file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published
@@ -30,7 +30,6 @@
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
@@ -44,20 +43,15 @@
 #include <Base.h>
 #endif
 
-#define HAVE_CLOCK_GETTIME  0
+#define HAVE_CLOCK_GETTIME  1
 #define HAVE_ERRNO_H        1
 #define HAVE_INTTYPES_H     1
-#define HAVE_LIMITS_H       0
 #define HAVE_STDARG_H       1
-#define HAVE_STDBOOL_H      0
-#define HAVE_STDDEF_H       0
+#define HAVE_STDDEF_H       1
 #define HAVE_STDINT_H       1
-#define HAVE_STDIO_H        1
-#define HAVE_STDLIB_H       0
 #define HAVE_SYS_STAT_H     1
 #define HAVE_SYS_TYPES_H    1
 #define HAVE_TIME_H         1
-#define HAVE_WCHAR_H        0
 
 /* Disable reparse plugins */
 #define DISABLE_PLUGINS     1
@@ -123,6 +117,16 @@ struct passwd {
 	char* pw_shell;
 	time_t pw_expire;
 };
+
+#ifndef SEEK_SET
+#define SEEK_SET        0
+#endif
+#ifndef SEEK_CUR
+#define SEEK_CUR        1
+#endif
+#ifndef SEEK_END
+#define SEEK_END        2
+#endif
 
 #ifndef O_RDONLY
 #define O_RDONLY        0
