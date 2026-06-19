@@ -205,6 +205,9 @@ u32 ntfs_log_clear_flags(u32 flags)
  *
  * Returns:  "string"  Prefix to be used
  */
+#ifdef UEFI_DRIVER
+static void * ntfs_log_get_stream(u32 level) { return NULL; }
+#else
 static FILE * ntfs_log_get_stream(u32 level)
 {
 	FILE *stream;
@@ -232,6 +235,7 @@ static FILE * ntfs_log_get_stream(u32 level)
 
 	return stream;
 }
+#endif
 
 /**
  * ntfs_log_get_prefix - Default prefixes for logging levels
