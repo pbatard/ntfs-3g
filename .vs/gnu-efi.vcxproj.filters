@@ -92,9 +92,6 @@
     <ClCompile Include="..\gnu-efi\lib\error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\gnu-efi\lib\arm\math.c">
-      <Filter>Source Files\arm</Filter>
-    </ClCompile>
     <ClCompile Include="..\gnu-efi\lib\x86_64\math.c">
       <Filter>Source Files\x86_64</Filter>
     </ClCompile>
