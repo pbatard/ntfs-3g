@@ -325,7 +325,11 @@ void ntfs_log_set_handler(ntfs_log_handler *handler)
  *            0  Message wasn't logged
  *          num  Number of output characters
  */
-int ntfs_log_redirect(const char *function, const char *file,
+int
+#ifdef UEFI_DRIVER
+EFIAPI
+#endif
+ntfs_log_redirect(const char *function, const char *file,
 	int line, u32 level, void *data, const char *format, ...)
 {
 	int olderr = errno;
