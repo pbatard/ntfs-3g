@@ -13,10 +13,10 @@ This repository is a fork of the [ntfs-3g project](https://github.com/tuxera/ntf
 that enables building ntfs-3g into a fully functional UEFI NTFS driver.
 
 The resulting driver, which includes both read and write capabilities, can be
-compiled with either Visual Studio 2022 (EDK2 or gnu-efi) or gcc (EDK2 only)
-for all of the IA32, X64, ARM, AARCH64 and LOONGARCH64 UEFI architectures.
+compiled with either Visual Studio 2026 (EDK2 or gnu-efi) or gcc (EDK2 only)
+for all of the IA32, X64, ARM, AARCH64, RISCV64 and LOONGARCH64 UEFI architectures.
 
-If using [Visual Studio 2022](https://visualstudio.microsoft.com/vs/), the
+If using [Visual Studio 2026](https://visualstudio.microsoft.com/vs/), the
 driver can also be tested through [QEMU](https://www.qemu.org/).
 
 The changes that are applied on top of the ntfs-3g source can be found, as
@@ -62,9 +62,9 @@ export GCC5_RISCV64_PREFIX=riscv64-linux-gnu-
 
 ### Windows ([gnu-efi](https://sourceforge.net/p/gnu-efi/code/ci/master/tree/))
 
-This assumes that you have Visual Studio 2022 installed.
+This assumes that you have Visual Studio 2026 installed.
 
-Open the VS2022 solution file and build using the IDE.
+Open the Visual Studio solution file and build using the IDE.
 
 If you have QEMU installed under `C:\Program Files\qemu\` you should also be
 able to test the driver for any of the supported architectures (IA32, X64, ARM
@@ -75,13 +75,13 @@ automatically by the test script.
 
 ### Windows ([EDK2](https://github.com/tianocore/edk2))
 
-This assumes that you have Visual Studio 2022, EDK2 and Nasm installed.
+This assumes that you have Visual Studio 2026, EDK2 and Nasm installed.
 For this examples, we assume that EDK2 is installed in `D:\EDK2` and Nasm in `D:\Nasm`. 
 
 Open a command prompt at the top of this repository and issue:
 
 ```
-"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+"C:\Program Files\Microsoft Visual Studio\2026\Community\VC\Auxiliary\Build\vcvars64.bat"
 set WORKSPACE=%cd%
 set EDK2_PATH=D:\EDK2
 set NASM_PREFIX=D:\Nasm\
@@ -90,9 +90,8 @@ set PACKAGES_PATH=%WORKSPACE%;%EDK2_PATH%
 build -a X64 -b RELEASE -t VS2019 -p uefi-driver.dsc
 ```
 
-You may also use `IA32`, `ARM` or `AARCH64` for the `-a` parameter to build a
-driver for these architectures noting however that, for ARM or ARM64 compilation,
-you must have selected the relevant C++ components during Visual Studio install.
+You may also use `IA32` or `AARCH64` for the `-a` parameter to build a driver for
+these architectures.
 
 ## USAGE
 
