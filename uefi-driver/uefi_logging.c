@@ -34,12 +34,19 @@ Print_t* PrintTable[] = { &PrintError, &PrintWarning, &PrintInfo,
 UINTN LogLevel        = DEFAULT_LOGLEVEL;
 
 UINTN
+EFIAPI
 PrintDebugger(IN CONST CHAR16* Format, ...)
 {
 	STATIC CHAR16 UnicodeStr[1024];
 	STATIC CHAR8 Utf8Str[1024];
 	UINTN Ret = 0;
 	VA_LIST Marker;
+
+	/* UnicodeVSPrint() asserts if Format is NULL, so just in case... */
+	if (Format == NULL) {
+		DEBUG((0x80000000, "ERROR: PrintDebugger() called with NULL Format!\n"));
+		return 0;
+	}
 
 	VA_START(Marker, Format);
 	UnicodeVSPrint(UnicodeStr, sizeof(UnicodeStr), Format, Marker);
@@ -109,7 +116,7 @@ SetLogging(VOID)
 #endif
 
 	for (i = 0; i < ARRAYSIZE(PrintTable); i++)
-		*PrintTable[i] = (i < LogLevel)?(Print_t)PrintDebugger:(Print_t)PrintNone;
+		*PrintTable[i] = (i < LogLevel) ? PrintDebugger : PrintNone;
 
 	NtfsSetLogger(LogLevel);
 

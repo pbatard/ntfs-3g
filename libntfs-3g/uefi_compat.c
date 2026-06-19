@@ -238,7 +238,7 @@ char* strdup(const char* s)
 	return memcpy(ret, s, strlen(s) + 1);
 }
 
-int snprintf(char* str, size_t size, const char* format, ...)
+int EFIAPI snprintf(char* str, size_t size, const char* format, ...)
 {
 	size_t i, ret;
 	VA_LIST args;
