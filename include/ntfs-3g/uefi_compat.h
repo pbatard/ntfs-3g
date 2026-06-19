@@ -290,7 +290,7 @@ char* strcpy(char* dest, const char* src);
 char* strncpy(char* dest, const char* src, size_t n);
 char* strchr(const char* s, int c);
 char* strrchr(const char* s, int c);
-int   snprintf(char* str, size_t size, const char* format, ...);
+int   EFIAPI snprintf(char* str, size_t size, const char* format, ...);
 char* strerror(int errnum);
 /* errno -> _errno() / __errno_location() is defined in errno.h */
 #ifdef _MSC_VER

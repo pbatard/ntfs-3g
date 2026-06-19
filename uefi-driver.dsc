@@ -94,4 +94,8 @@
   # DEBUG_FS                                       0x00000008 (ntfs-3g "DEBUG")
   # DEBUG_EVENT                                    0x00080000 (ntfs-3g "TRACE")
   # DEBUG_INIT                                     0x00000001 (ntfs-3g "ENTER/LEAVE")
+!if $(TARGET) == DEBUG
   gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x8040004A
+!else
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x0
+!endif

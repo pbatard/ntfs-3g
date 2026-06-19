@@ -68,4 +68,4 @@ extern Print_t PrintDebug;
 
 extern VOID SetLogging(VOID);
 extern VOID PrintStatus(EFI_STATUS Status);
-extern UINTN PrintDebugger(IN CONST CHAR16* Format, ...);
+extern UINTN EFIAPI PrintDebugger(IN CONST CHAR16* Format, ...);
