@@ -74,7 +74,11 @@ u32 ntfs_log_get_flags(void);
 /* Turn command-line options into logging flags */
 BOOL ntfs_log_parse_option(const char *option);
 
-int ntfs_log_redirect(const char *function, const char *file, int line,
+int
+#ifdef UEFI_DRIVER
+EFIAPI
+#endif
+ntfs_log_redirect(const char *function, const char *file, int line,
 	u32 level, void *data, const char *format, ...)
 	__attribute__((format(printf, 6, 7)));
 
