@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 env:
   COMPILER: GCC
-  EDK2_STABLE_TAG: edk2-stable202605
+  EDK2_STABLE_TAG: edk2-stable202608
   GCC_AARCH64_PREFIX: aarch64-linux-gnu-
   GCC_RISCV64_PREFIX: riscv64-linux-gnu-
   GCC_LOONGARCH64_PREFIX: loongarch64-unknown-linux-gnu-
@@ -37,7 +37,7 @@ jobs:
 
     steps:
     - name: Check out repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -50,8 +50,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install ${{ matrix.pkgs }}
         if [[ "${{ matrix.arch }}" == "LOONGARCH64" ]]; then
-          curl -L -O https://github.com/loongson/build-tools/releases/download/${LOONGARCH64_TOOLCHAIN_TAG}/${LOONGARCH64_TOOLCHAIN_NAME}
-          tar -xJf ${LOONGARCH64_TOOLCHAIN_NAME}
+          curl -L -O https://github.com/loongson/build-tools/releases/download/${{ env.LOONGARCH64_TOOLCHAIN_TAG }}/${{ env.LOONGARCH64_TOOLCHAIN_NAME }}
+          tar -xJf ${{ env.LOONGARCH64_TOOLCHAIN_NAME }}
           echo "$PWD/cross-tools/bin" >> "$GITHUB_PATH"
         fi
 
@@ -61,7 +61,7 @@ jobs:
 
     - name: Set up EDK2
       run: |
-        git clone --depth 1 --branch ${EDK2_STABLE_TAG} --recursive https://github.com/tianocore/edk2.git
+        git clone --depth 1 --branch ${{ env.EDK2_STABLE_TAG }} --recurse-submodules https://github.com/tianocore/edk2.git
         make -C edk2/BaseTools
 
     - name: Build UEFI drivers
