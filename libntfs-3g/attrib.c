@@ -1561,7 +1561,6 @@ static int split_compressed_hole(ntfs_attr *na, runlist_element **prl,
 			 */
 		if (endblock < rl[0].length) {
 			runlist_element *xrl;
-			int n;
 
 			/*
 			 * we have to split into three parts if the run
@@ -1575,10 +1574,8 @@ ntfs_log_error("No free run, case 1\n");
 				}
 				na->unused_runs -= 2;
 				xrl = rl;
-				n = 0;
 				while (xrl->length) {
 					xrl++;
-					n++;
 				}
 				do {
 					xrl[2] = *xrl;
@@ -1604,10 +1601,8 @@ ntfs_log_error("No free run, case 2\n");
 				}
 				na->unused_runs--;
 				xrl = rl;
-				n = 0;
 				while (xrl->length) {
 					xrl++;
-					n++;
 				}
 				do {
 					xrl[1] = *xrl;
@@ -1632,7 +1627,6 @@ ntfs_log_error("No free run, case 2\n");
 		} else {
 			if (rl[1].length) {
 				runlist_element *xrl;
-				int n;
 
 				/*
 				 * split into two parts and use the
@@ -1643,10 +1637,8 @@ ntfs_log_error("No free run, case 4\n");
 				}
 				na->unused_runs--;
 				xrl = rl;
-				n = 0;
 				while (xrl->length) {
 					xrl++;
-					n++;
 				}
 				do {
 					xrl[1] = *xrl;
