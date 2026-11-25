@@ -360,7 +360,7 @@ NtfsLookup(EFI_NTFS_FILE* File, UINT64 Inum, BOOLEAN IgnoreSelf)
 			/* An empty path should return the root */
 			if (File->Path[0] == 0 && Entry->File->IsRoot)
 				return Entry->File;
-			if (StrCmp(File->Path, Entry->File->Path) == 0)
+			if (_StriCmp(File->Path, Entry->File->Path) == 0)
 				return Entry->File;
 		} else {
 			ni = Entry->File->NtfsInode;
@@ -572,6 +572,10 @@ NtfsMountVolume(EFI_FS* FileSystem)
 		RemoveEntryList((LIST_ENTRY*)FileSystem);
 		return Status;
 	}
+
+	/* Make sure our volume is mounted as case-insensitive. NB: Don't use */
+	/* ntfs_set_ignore_case() here as it would make everything lowercase. */
+	NVolClearCaseSensitive(vol); 
 
 	/* Store the serial to detect media change/removal */
 	FileSystem->NtfsVolumeSerial = vol->vol_serial;
@@ -1174,7 +1178,7 @@ NtfsMoveFile(EFI_NTFS_FILE* File, CHAR16* NewPath)
 	u64 parent_inum = 0, newparent_inum = 0;
 
 	/* Nothing to do if new and old paths are the same */
-	if (StrCmp(File->Path, NewPath) == 0)
+	if (_StriCmp(File->Path, NewPath) == 0)
 		return EFI_SUCCESS;
 
 	/* Don't alter a file that is dirty */
@@ -1189,7 +1193,7 @@ NtfsMoveFile(EFI_NTFS_FILE* File, CHAR16* NewPath)
 	/* Isolate dirname and get the inode */
 	FS_ASSERT(File->BaseName[-1] == PATH_CHAR);
 	File->BaseName[-1] = 0;
-	SameDir = (StrCmp(NewPath, File->Path) == 0);
+	SameDir = (_StriCmp(NewPath, File->Path) == 0);
 	if (Parent == NULL)
 		parent_ni = NtfsOpenInodeFromPath(File->FileSystem, File->Path);
 	else
@@ -1241,7 +1245,7 @@ NtfsMoveFile(EFI_NTFS_FILE* File, CHAR16* NewPath)
 			FS_ASSERT(File->Path[0] == PATH_CHAR);
 			while (File->Path[--TmpLen] != PATH_CHAR);
 			File->Path[TmpLen] = 0;
-			ParentIsChildOfNewParent = (StrCmp(File->Path, NewPath) == 0);
+			ParentIsChildOfNewParent = (_StriCmp(File->Path, NewPath) == 0);
 			File->Path[TmpLen] = PATH_CHAR;
 		}
 		File->BaseName[-1] = PATH_CHAR;
@@ -1369,7 +1373,7 @@ NtfsSetFileInfo(EFI_NTFS_FILE* File, EFI_FILE_INFO* Info, BOOLEAN ReadOnly)
 				*c = PATH_CHAR;
 		}
 		CleanPath(Path);
-		if (StrCmp(Path, File->Path)) {
+		if (_StriCmp(Path, File->Path)) {
 			/* Non attribute change of read-only file */
 			if (ReadOnly)
 				return EFI_ACCESS_DENIED;

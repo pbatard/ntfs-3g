@@ -18,6 +18,23 @@
 
 #include "uefi_support.h"
 
+#if !defined(_GNU_EFI)
+EFI_UNICODE_COLLATION_PROTOCOL* gUnicodeCollation2 = NULL;
+
+/*
+ * Perform case-insensitive comparison of 2 strings.
+ * Falls back to case-sensitive comparison if UnicodeCollation2 protocol is not available.
+ */
+INTN _StriCmp(CONST CHAR16* Str1, CONST CHAR16* Str2)
+{
+	if (gUnicodeCollation2 == NULL)
+		gBS->LocateProtocol(&gEfiUnicodeCollation2ProtocolGuid, NULL, (VOID**)&gUnicodeCollation2);
+
+	return (gUnicodeCollation2 == NULL) ? StrCmp(Str1, Str2) :
+		gUnicodeCollation2->StriColl(gUnicodeCollation2, (CHAR16*)Str1, (CHAR16*)Str2);
+}
+#endif
+
 /*
  * Convert a GUID to a Unicode string.
  * NB: Concurrent accesses to this call are not supported.

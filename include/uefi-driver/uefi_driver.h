@@ -43,6 +43,7 @@
 #include <Protocol/DevicePathFromText.h>
 #include <Protocol/DevicePathToText.h>
 #include <Protocol/SimpleFileSystem.h>
+#include <Protocol/UnicodeCollation.h>
 #include <Protocol/BlockIo.h>
 #include <Protocol/BlockIo2.h>
 #include <Protocol/DiskIo.h>
