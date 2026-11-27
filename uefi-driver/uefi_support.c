@@ -18,7 +18,6 @@
 
 #include "uefi_support.h"
 
-#if !defined(_GNU_EFI)
 EFI_UNICODE_COLLATION_PROTOCOL* gUnicodeCollation2 = NULL;
 
 /*
@@ -33,7 +32,6 @@ INTN _StriCmp(CONST CHAR16* Str1, CONST CHAR16* Str2)
 	return (gUnicodeCollation2 == NULL) ? StrCmp(Str1, Str2) :
 		gUnicodeCollation2->StriColl(gUnicodeCollation2, (CHAR16*)Str1, (CHAR16*)Str2);
 }
-#endif
 
 /*
  * Convert a GUID to a Unicode string.

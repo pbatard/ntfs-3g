@@ -159,11 +159,7 @@ static __inline CHAR16* StrDup(CONST CHAR16* Src)
 /*
  * Prototypes for the function calls provided in uefi_support.c
  */
-#if defined(_GNU_EFI)
-#define _StriCmp StriCmp
-#else
 INTN _StriCmp(CONST CHAR16* Str1, CONST CHAR16* Str2);
-#endif
 CHAR16* GuidToStr(EFI_GUID* Guid);
 VOID UnixTimeToEfiTime(time_t t, EFI_TIME* Time);
 time_t EfiTimeToUnixTime(EFI_TIME* Time);
